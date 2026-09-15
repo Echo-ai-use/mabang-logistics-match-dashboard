@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>马帮物流渠道匹配检查看板</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">
+      <h1>马帮物流渠道匹配检查看板</h1>
+      <p class="subtitle">
+        特殊属性订单（电池 / 液体 / 膏体 / 刀具 / 粉末 / 磁性 / 易燃品）落到「<b>普货</b>」渠道 → <span class="txt-danger">异常</span>；落到专用渠道 → 正常
+      </p>
+    </div>
+    <div class="actions">
+      <span id="syncInfo" class="sync-info"></span>
+      <button id="btnSync" class="btn primary">⟳ 同步数据</button>
+      <button id="btnSettings" class="btn ghost">⚙ 设置</button>
+    </div>
+  </header>
+
+  <section class="stats" id="stats">
+    <div class="card clickable" data-scope="all" title="点击查看全部订单">
+      <div class="card-label">未发货订单总数</div>
+      <div class="card-value" id="statTotal">—</div>
+      <div class="card-sub" id="statTotalSub">待处理 + 配货中 + 待审核</div>
+    </div>
+    <div class="card clickable" data-scope="special" title="点击只看特殊属性订单">
+      <div class="card-label">特殊属性订单</div>
+      <div class="card-value" id="statSpecial">—</div>
+      <div class="card-sub" id="statSpecialSub">含电池/液体/膏体等</div>
+    </div>
+    <div class="card danger clickable" data-scope="anomaly" title="点击只看异常订单">
+      <div class="card-label">🔴 异常（特殊属性 × 普货渠道）</div>
+      <div class="card-value" id="statAnomaly">—</div>
+      <div class="card-sub" id="statAnomalySub">需要改物流渠道</div>
+    </div>
+    <div class="card ok clickable" data-scope="ok" title="点击只看正常订单">
+      <div class="card-label">✅ 正常（走专用渠道）</div>
+      <div class="card-value" id="statOk">—</div>
+      <div class="card-sub" id="statOkSub">已匹配正确</div>
+    </div>
+    <div class="card clickable" data-scope="pending" title="点击只看未分配渠道的订单">
+      <div class="card-label">⚠ 待分配物流渠道</div>
+      <div class="card-value" id="statPending">—</div>
+      <div class="card-sub" id="statPendingSub">有特殊属性但渠道为空</div>
+    </div>
+  </section>
+
+  <section class="panels" id="panels">
+    <div class="panel">
+      <div class="panel-head">
+        <span>特殊属性分布</span>
+        <span class="panel-hint">条形长度 = 命中订单数；红色部分 = 其中异常</span>
+      </div>
+      <div class="bars" id="attrBars"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span>异常渠道 TOP（含「普货」的渠道）</span>
+        <span class="panel-hint">点击可筛选</span>
+      </div>
+      <div class="bars" id="channelBars"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span>异常订单 · 涉事店铺 TOP</span>
+        <span class="panel-hint">点击可筛选</span>
+      </div>
+      <div class="bars" id="shopBars"></div>
+    </div>
+  </section>
+
+  <section class="toolbar">
+    <div class="seg-tabs" id="scopeTabs">
+      <button class="tab active" data-scope="all">全部</button>
+      <button class="tab danger" data-scope="anomaly">仅异常</button>
+      <button class="tab ok" data-scope="ok">仅正常</button>
+      <button class="tab" data-scope="special">仅特殊属性</button>
+      <button class="tab" data-scope="pending">待分配渠道</button>
+    </div>
+    <input type="text" id="inpSearch" class="search" placeholder="搜索 内部单号 / 平台订单号 / 店铺 / 买家 / 物流渠道 / 运单号 / 特殊属性…" />
+    <select id="selSort" class="select">
+      <option value="anomaly_desc">异常优先 + 最新更新</option>
+      <option value="update_desc">更新时间 新→旧</option>
+      <option value="update_asc">更新时间 旧→新</option>
+      <option value="channel_asc">物流渠道 字母序</option>
+      <option value="shop_asc">店铺 字母序</option>
+      <option value="order_asc">内部单号 升序</option>
+    </select>
+    <select id="selPageSize" class="select">
+      <option value="50">50 条/页</option>
+      <option value="100" selected>100 条/页</option>
+      <option value="200">200 条/页</option>
+    </select>
+    <span id="resultCount" class="result-count"></span>
+  </section>
+
+  <main class="table-wrap">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>判定</th>
+          <th>内部单号</th>
+          <th>店铺</th>
+          <th>订单类型</th>
+          <th>物流渠道名称</th>
+          <th>特殊属性</th>
+          <th>命中商品</th>
+          <th>运单号</th>
+          <th>目的国</th>
+          <th>更新时间</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="pager">
+      <button id="btnPrev" class="btn ghost">上一页</button>
+      <span id="pageInfo"></span>
+      <button id="btnNext" class="btn ghost">下一页</button>
+    </div>
+  </main>
+
+  <!-- 设置弹窗 -->
+  <div class="modal-mask" id="settingsModal" hidden>
+    <div class="modal">
+      <h2>设置</h2>
+      <div id="cfgCreds">
+        <div class="form-row">
+          <label>马帮 AppKey</label>
+          <input type="text" id="cfgAppkey" placeholder="开发者后台获取" />
+        </div>
+        <div class="form-row">
+          <label>马帮 App密钥</label>
+          <input type="password" id="cfgAppsecret" placeholder="留空表示不修改" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>订单状态 <span class="lab-hint">（马帮 status 参数）</span></label>
+        <select id="cfgStatus" class="select full"></select>
+      </div>
+
+      <div class="form-row">
+        <label>订单类型 <span class="lab-hint">（马帮 canSend 参数）</span></label>
+        <select id="cfgCanSend" class="select full"></select>
+        <div class="tip">⚠ 默认「正常订单」会漏掉「异常订单（待审核）」，建议保持「全部订单」。</div>
+      </div>
+
+      <div class="form-row">
+        <label>同步窗口天数 <span class="lab-hint">（1~7 天，马帮限近 7 天）</span></label>
+        <input type="number" id="cfgWindow" step="1" min="1" max="7" value="1" />
+      </div>
+
+      <div class="form-row">
+        <label>算作「特殊属性」的字段</label>
+        <div class="chips" id="attrChips"></div>
+      </div>
+
+      <div class="form-row">
+        <label>「普货」关键词 <span class="lab-hint">（逗号分隔，渠道名命中即判普货）</span></label>
+        <input type="text" id="cfgKeywords" placeholder="普货" />
+      </div>
+
+      <div class="form-row">
+        <label>判定规则（固定口径）</label>
+        <table class="rule-table" id="ruleTable"></table>
+      </div>
+
+      <p class="hint">
+        本看板仅调用马帮 <code>order-get-order-list-new</code> <b>只读</b>查询接口，不会修改任何数据。
+      </p>
+      <div class="modal-actions">
+        <button id="btnCfgCancel" class="btn ghost">关闭</button>
+        <button id="btnCfgSave" class="btn primary">保存</button>
+      </div>
+      <p id="cfgMsg" class="cfg-msg"></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="snapshot-core.js"></script>
+  <script src="snapshot-items-0.js"></script>
+  <script src="snapshot-items-1.js"></script>
+  <script src="snapshot-items-2.js"></script>
+  <script src="snapshot-items-3.js"></script>
+  <script src="snapshot-items-4.js"></script>
+  <script src="snapshot-items-5.js"></script>
+  <script src="snapshot-items-6.js"></script>
+  <script src="snapshot-items-7.js"></script>
+  <script src="snapshot-items-8.js"></script>
+  <script src="snapshot-items-9.js"></script>
+  <script src="snapshot-items-10.js"></script>
+  <script src="snapshot-items-11.js"></script>
+  <script src="snapshot-items-12.js"></script>
+  <script src="snapshot-items-final.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
