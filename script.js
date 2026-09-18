@@ -63,6 +63,7 @@ try {
 } catch (e) { MANUAL_REASONS = {}; }
 
 let _saveReasonTimer = null;
+let _reasonSelTimer = null;
 function persistReasons() {
   clearTimeout(_saveReasonTimer);
   _saveReasonTimer = setTimeout(() => {
@@ -142,8 +143,8 @@ function snapItems() {
 
 const RANK = { anomaly: 0, pending: 1, ok: 2, na: 3 };
 
-/** 按 scope / 搜索 / 店铺 过滤 + 排序，返回【全部】命中记录（不分页）。导出功能也复用它。 */
-function snapFiltered({ scope, q, shop, sort } = {}) {
+/** 按 scope / 搜索 / 店铺 / 原因分类 过滤 + 排序，返回【全部】命中记录（不分页）。导出功能也复用它。 */
+function snapFiltered({ scope, q, shop, reason, sort } = {}) {
   let list = snapItems();
   switch (scope) {
     case 'anomaly': list = list.filter((r) => r.verdict === 'anomaly'); break;
@@ -163,6 +164,7 @@ function snapFiltered({ scope, q, shop, sort } = {}) {
     );
   }
   if (shop) list = list.filter((r) => r.shopName === shop);
+  if (reason) list = list.filter((r) => effectiveReason(r) === reason);
   const sorters = {
     anomaly_desc: (a, b) => (RANK[a.verdict] - RANK[b.verdict]) || String(b.updateTime).localeCompare(String(a.updateTime)),
     update_desc: (a, b) => String(b.updateTime || '').localeCompare(String(a.updateTime || '')),
@@ -175,8 +177,8 @@ function snapFiltered({ scope, q, shop, sort } = {}) {
   return list;
 }
 
-function snapQuery({ scope, q, shop, sort, page, pageSize }) {
-  const list = snapFiltered({ scope, q, shop, sort });
+function snapQuery({ scope, q, shop, reason, sort, page, pageSize }) {
+  const list = snapFiltered({ scope, q, shop, reason, sort });
   const total = list.length;
   const p = Math.max(1, Number(page) || 1);
   const ps = Math.min(Math.max(1, Number(pageSize) || 100), 1000);
@@ -203,6 +205,7 @@ const S = {
   scope: 'all',
   q: '',
   shop: '',
+  reason: '',
   sort: 'anomaly_desc',
   page: 1,
   pageSize: 100,
@@ -314,7 +317,8 @@ function renderPanels() {
   })), {
     emptyText: '暂无异常店铺',
     onClick: (r) => {
-      S.shop = r._shop; S.q = ''; $('inpSearch').value = ''; $('selShop').value = r._shop;
+      S.shop = r._shop; S.q = ''; S.reason = ''; $('inpSearch').value = ''; $('selShop').value = r._shop;
+      $('selReason').value = '';
       S.scope = 'anomaly'; S.page = 1; renderStats(); loadOrders();
     },
   });
@@ -370,12 +374,13 @@ function rowHtml(r, idx) {
 
 function renderTable(res) {
   const tbody = $('tbody');
-  if (!res.items || !res.items.length) {
+  if (res.items && res.items.length) {
+    const start = (res.page - 1) * res.pageSize;
+    tbody.innerHTML = res.items.map((r, i) => rowHtml(r, start + i + 1)).join('');
+  } else {
     tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
-    return;
   }
-  const start = (res.page - 1) * res.pageSize;
-  tbody.innerHTML = res.items.map((r, i) => rowHtml(r, start + i + 1)).join('');
+  // 计数/分页必须无条件更新，否则「筛选后 0 条」时会显示上一次的旧数字
   const totalPages = Math.max(1, Math.ceil(res.total / res.pageSize));
   $('pageInfo').textContent = `第 ${res.page} / ${totalPages} 页 · 共 ${fmtNum(res.total)} 条`;
   $('btnPrev').disabled = res.page <= 1;
@@ -441,7 +446,7 @@ async function exportCsv() {
     const d = new Date();
     const p = (n) => String(n).padStart(2, '0');
     const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
-    const name = `物流匹配异常_${SCOPE_LABEL[S.scope] || '全部'}_${stamp}.csv`;
+    const name = `物流匹配异常_${SCOPE_LABEL[S.scope] || '全部'}${S.reason ? '_' + S.reason : ''}_${stamp}.csv`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name;
@@ -492,8 +497,8 @@ function updateReasonProgress() {
 
 // ===================== 数据加载 =====================
 function qs(o = {}) {
-  const v = { scope: S.scope, q: S.q, shop: S.shop, sort: S.sort, page: S.page, pageSize: S.pageSize, ...o };
-  return `scope=${encodeURIComponent(v.scope)}&q=${encodeURIComponent(v.q)}&shop=${encodeURIComponent(v.shop)}&sort=${encodeURIComponent(v.sort)}&page=${v.page}&pageSize=${v.pageSize}`;
+  const v = { scope: S.scope, q: S.q, shop: S.shop, reason: S.reason, sort: S.sort, page: S.page, pageSize: S.pageSize, ...o };
+  return `scope=${encodeURIComponent(v.scope)}&q=${encodeURIComponent(v.q)}&shop=${encodeURIComponent(v.shop)}&reason=${encodeURIComponent(v.reason)}&sort=${encodeURIComponent(v.sort)}&page=${v.page}&pageSize=${v.pageSize}`;
 }
 
 async function loadOrders() {
@@ -527,6 +532,7 @@ async function loadState() {
     renderSyncInfo();
     fillSettings();
     fillShopSelect();
+    fillReasonSelect();
     return st;
   } catch (e) {
     toast('加载状态失败：' + e.message);
@@ -619,6 +625,29 @@ function fillShopSelect() {
   if (!counts[cur] && cur) html += `<option value="${escapeHtml(cur)}" selected>${escapeHtml(cur)}（${counts[cur] || 0}）</option>`;
   for (const s of shops) {
     html += `<option value="${escapeHtml(s)}"${s === cur ? ' selected' : ''}>${escapeHtml(s)}（${counts[s]}）</option>`;
+  }
+  sel.innerHTML = html;
+}
+
+// 原因分类筛选下拉：列出所有异常的原因分类（含系统建议 + 人工填写），按数量降序
+function fillReasonSelect() {
+  const sel = $('selReason');
+  if (!sel) return;
+  const counts = {};
+  if (STATIC) {
+    for (const r of snapItems()) {
+      if (r.verdict !== 'anomaly') continue;
+      const k = effectiveReason(r);
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    }
+  }
+  const total = Object.values(counts).reduce((s, n) => s + n, 0);
+  const cur = S.reason;
+  let html = `<option value="">🏷 全部原因分类（异常 ${total}）</option>`;
+  const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  if (cur && !counts[cur]) html += `<option value="${escapeHtml(cur)}" selected>${escapeHtml(cur)}（0）</option>`;
+  for (const k of keys) {
+    html += `<option value="${escapeHtml(k)}"${k === cur ? ' selected' : ''}>${escapeHtml(k)}（${counts[k]}）</option>`;
   }
   sel.innerHTML = html;
 }
@@ -735,6 +764,7 @@ function bind() {
   $('selSort').addEventListener('change', (e) => { S.sort = e.target.value; S.page = 1; loadOrders(); });
   $('selPageSize').addEventListener('change', (e) => { S.pageSize = Number(e.target.value); S.page = 1; loadOrders(); });
   $('selShop').addEventListener('change', (e) => { S.shop = e.target.value; S.page = 1; loadOrders(); });
+  $('selReason').addEventListener('change', (e) => { S.reason = e.target.value; S.page = 1; loadOrders(); });
   $('btnPrev').addEventListener('click', () => { if (S.page > 1) { S.page--; loadOrders(); } });
   $('btnNext').addEventListener('click', () => { S.page++; loadOrders(); });
 
@@ -748,6 +778,9 @@ function bind() {
     setManualReason(el.dataset.id, el.value);
     el.classList.toggle('edited', !!el.value.trim() && el.value.trim() !== el.dataset.sug);
     updateReasonProgress();
+    // 原因改了 → 下拉里的分类与数量要跟着变（防抖，避免边打字边重建）
+    clearTimeout(_reasonSelTimer);
+    _reasonSelTimer = setTimeout(fillReasonSelect, 600);
   });
   // 失焦时若为空，回填系统建议，避免出现空白的分类
   $('tbody').addEventListener('blur', (e) => {
@@ -757,6 +790,8 @@ function bind() {
     setManualReason(el.dataset.id, '');
     el.classList.remove('edited');
     updateReasonProgress();
+    clearTimeout(_reasonSelTimer);
+    _reasonSelTimer = setTimeout(fillReasonSelect, 300);
   }, true);
 }
 
