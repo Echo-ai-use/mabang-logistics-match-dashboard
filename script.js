@@ -36,6 +36,85 @@ const DEFAULT_CANSEND_OPTIONS = [
   { value: '2', label: '仅异常订单（待审核）' },
 ];
 
+// ===================== 异常原因分类（人工填写） =====================
+/** 特殊属性 key → 业务口径叫法（用户说法：电池叫「带电」） */
+const ATTR_TO_CARGO = {
+  battery: '带电', liquid: '液体', paste: '膏体', knife: '刀具',
+  powder: '粉末', magnetic: '磁性', flammable: '易燃品',
+};
+
+/** 「原因分类」下拉候选（也可自由输入） */
+const REASON_PRESETS = [
+  '带电发成普货', '磁性发成普货', '液体发成普货', '膏体发成普货',
+  '粉末发成普货', '刀具发成普货', '易燃品发成普货',
+  '普货发成带电', '普货发成特货', '普货发成化妆品',
+  '美国单缺「-美国」后缀',
+  '已改正', '非误判（可正常发）', '待确认',
+];
+
+const REASON_STORE_KEY = 'mbm.anomalyReasons.v1';
+
+/** 人工原因：{ [erpOrderId]: { text, at } }，存 localStorage（看板是纯静态，没有后端） */
+let MANUAL_REASONS = {};
+try {
+  const raw = localStorage.getItem(REASON_STORE_KEY);
+  MANUAL_REASONS = raw ? JSON.parse(raw) : {};
+  if (!MANUAL_REASONS || typeof MANUAL_REASONS !== 'object') MANUAL_REASONS = {};
+} catch (e) { MANUAL_REASONS = {}; }
+
+let _saveReasonTimer = null;
+function persistReasons() {
+  clearTimeout(_saveReasonTimer);
+  _saveReasonTimer = setTimeout(() => {
+    try { localStorage.setItem(REASON_STORE_KEY, JSON.stringify(MANUAL_REASONS)); }
+    catch (e) { toast('本地保存失败（浏览器存储空间不足或被禁用）'); }
+  }, 300);
+}
+
+/** 取某单的人工原因（没有则返回 ''） */
+function manualReasonOf(id) {
+  const rec = MANUAL_REASONS[String(id)];
+  return rec && rec.text ? rec.text : '';
+}
+
+/** 写入/清除人工原因 */
+function setManualReason(id, text) {
+  const key = String(id);
+  const v = String(text || '').trim();
+  if (v) MANUAL_REASONS[key] = { text: v, at: new Date().toISOString() };
+  else delete MANUAL_REASONS[key];
+  persistReasons();
+}
+
+/**
+ * 依据系统判定自动「建议」一个原因分类，作为默认值。
+ *  - 特殊属性订单走了普货渠道 → 「带电发成普货」/「磁性发成普货」…
+ *  - 普货订单走了特殊渠道     → 「普货发成带电」/「普货发成特货」/「普货发成化妆品」
+ */
+function suggestReason(r) {
+  if (!r || r.verdict !== 'anomaly') return '';
+  const chan = String(r.channelName || '');
+  const rsn = String(r.reason || '');
+  // 规则3：美国订单经递四方(新)，线路名缺「-美国」后缀
+  if (rsn.includes('-美国')) return '美国单缺「-美国」后缀';
+  const attrs = (r.attrs || []);
+  if (attrs.length) {
+    const labels = attrs.map((k) => ATTR_TO_CARGO[k] || k);
+    return `${labels.join('/')}发成普货`;
+  }
+  const hits = [];
+  if (chan.includes('带电')) hits.push('带电');
+  if (chan.includes('特货')) hits.push('特货');
+  if (chan.includes('化妆品')) hits.push('化妆品');
+  return hits.length ? `普货发成${hits.join('/')}` : '待确认';
+}
+
+/** 该单最终采用的原因分类：人工填写的优先，否则用系统建议 */
+function effectiveReason(r) {
+  const m = manualReasonOf(r.erpOrderId || r.platformOrderId);
+  return m || suggestReason(r);
+}
+
 // ===================== 静态快照模式 =====================
 const SNAP = (typeof window !== 'undefined' && window.__SNAPSHOT__) || null;
 const STATIC = !!(SNAP && Array.isArray(SNAP.items));
@@ -63,7 +142,8 @@ function snapItems() {
 
 const RANK = { anomaly: 0, pending: 1, ok: 2, na: 3 };
 
-function snapQuery({ scope, q, shop, sort, page, pageSize }) {
+/** 按 scope / 搜索 / 店铺 过滤 + 排序，返回【全部】命中记录（不分页）。导出功能也复用它。 */
+function snapFiltered({ scope, q, shop, sort } = {}) {
   let list = snapItems();
   switch (scope) {
     case 'anomaly': list = list.filter((r) => r.verdict === 'anomaly'); break;
@@ -76,7 +156,8 @@ function snapQuery({ scope, q, shop, sort, page, pageSize }) {
   if (kw) {
     list = list.filter((r) =>
       [r.erpOrderId, r.platformOrderId, r.shopName, r.buyerName, r.channelName,
-        r.logisticsName, r.trackNumber, r.countryNameCN, r.attrText, ...(r.itemTitles || [])]
+        r.logisticsName, r.trackNumber, r.countryNameCN, r.attrText,
+        effectiveReason(r), r.reason, ...(r.itemTitles || [])]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(kw))
     );
@@ -91,6 +172,11 @@ function snapQuery({ scope, q, shop, sort, page, pageSize }) {
     order_asc: (a, b) => String(a.platformOrderId || a.erpOrderId || '').localeCompare(String(b.platformOrderId || b.erpOrderId || '')),
   };
   list.sort(sorters[sort] || sorters.anomaly_desc);
+  return list;
+}
+
+function snapQuery({ scope, q, shop, sort, page, pageSize }) {
+  const list = snapFiltered({ scope, q, shop, sort });
   const total = list.length;
   const p = Math.max(1, Number(page) || 1);
   const ps = Math.min(Math.max(1, Number(pageSize) || 100), 1000);
@@ -235,6 +321,19 @@ function renderPanels() {
 }
 
 // ===================== 渲染：表格 =====================
+/** 「原因分类」单元格：下拉候选 + 可自由输入；已人工改过的用琥珀色边框标记 */
+function reasonCellHtml(r, v) {
+  if (v !== 'anomaly') return '<span class="muted small">—</span>';
+  const id = String(r.erpOrderId || r.platformOrderId || '');
+  const manual = manualReasonOf(id);
+  const sug = suggestReason(r);
+  const val = manual || sug;
+  const edited = !!manual && manual !== sug;
+  return `<input class="reason-input${edited ? ' edited' : ''}" list="reasonList" data-id="${escapeHtml(id)}" `
+    + `data-sug="${escapeHtml(sug)}" value="${escapeHtml(val)}" placeholder="填写原因…" `
+    + `title="可下拉选择，也可直接输入；自动保存在本机浏览器，导出 CSV 会带上" />`;
+}
+
 function rowHtml(r, idx) {
   const v = r.verdict || 'na';
   const attrs = (r.attrs || []).map((k) => {
@@ -255,6 +354,7 @@ function rowHtml(r, idx) {
   return `<tr class="${VERDICT_CLASS[v] || ''}">
     <td class="muted small">${idx}</td>
     <td><span class="badge ${VERDICT_CLASS[v]}" title="${escapeHtml(r.reason || '')}">${escapeHtml(VERDICT_LABEL[v] || v)}</span></td>
+    <td class="reason-cell">${reasonCellHtml(r, v)}</td>
     <td class="mono" title="内部单号：${escapeHtml(r.erpOrderId || '')}">${escapeHtml(r.platformOrderId || r.erpOrderId || '')}</td>
     <td class="ellip" title="${escapeHtml(r.shopName || '')}">${escapeHtml(r.shopName || '')}</td>
     <td class="small ${r.canSend === '2' ? 'txt-danger' : 'muted'}">${escapeHtml(r.canSendText || '—')}</td>
@@ -271,7 +371,7 @@ function rowHtml(r, idx) {
 function renderTable(res) {
   const tbody = $('tbody');
   if (!res.items || !res.items.length) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
     return;
   }
   const start = (res.page - 1) * res.pageSize;
@@ -283,9 +383,117 @@ function renderTable(res) {
   $('resultCount').textContent = `共 ${fmtNum(res.total)} 条`;
 }
 
+// ===================== 导出 CSV =====================
+const SCOPE_LABEL = { all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道' };
+
+function csvCell(v) {
+  const s = String(v === null || v === undefined ? '' : v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** 取当前筛选条件下的【全部】记录（导出用，不分页） */
+async function collectAll() {
+  if (STATIC) return snapFiltered(S);
+  const out = [];
+  for (let page = 1; page <= 200; page++) {
+    const r = await fetch(`/api/orders?${qs({ page, pageSize: 1000 })}`);
+    const res = await r.json();
+    if (res.error) throw new Error(res.error);
+    const items = res.items || [];
+    out.push(...items);
+    if (!items.length || out.length >= (res.total || 0)) break;
+  }
+  return out;
+}
+
+async function exportCsv() {
+  const btn = $('btnExport');
+  btn.disabled = true;
+  btn.textContent = '⤓ 导出中…';
+  try {
+    const list = await collectAll();
+    if (!list.length) { toast('当前筛选结果为空，没有可导出的数据'); return; }
+
+    const head = [
+      '序号', '判定', '订单编号', '内部单号', '店铺', '订单类型', '物流渠道名称', '物流商',
+      '特殊属性', '命中商品', '运单号', '目的国', '更新时间', '异常原因（系统判定）', '原因分类', '原因来源',
+    ];
+    const rows = list.map((r, i) => {
+      const v = r.verdict || 'na';
+      const id = String(r.erpOrderId || r.platformOrderId || '');
+      const manual = manualReasonOf(id);
+      const attrs = (r.attrs || []).map((k) => {
+        const d = DEFAULT_ATTRS.find((a) => a.key === k);
+        return d ? d.label : k;
+      }).join('、');
+      return [
+        i + 1, VERDICT_LABEL[v] || v, r.platformOrderId || '', r.erpOrderId || '', r.shopName || '',
+        r.canSendText || '', r.channelName || '', r.logisticsName || '', attrs,
+        (r.itemTitles || []).filter(Boolean).join(' / '), r.trackNumber || '',
+        r.countryNameCN || r.countryCode || '', r.updateTime || '', r.reason || '',
+        manual || (v === 'anomaly' ? suggestReason(r) : ''),
+        manual ? '人工填写' : (v === 'anomaly' ? '系统建议' : ''),
+      ];
+    });
+
+    const csv = '\ufeff' + [head, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+    const name = `物流匹配异常_${SCOPE_LABEL[S.scope] || '全部'}_${stamp}.csv`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast(`已导出 ${list.length} 条（含「原因分类」列）`);
+  } catch (e) {
+    toast('导出失败：' + e.message, 5200);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⤓ 导出 CSV';
+  }
+}
+
+// ===================== 原因分类：下拉候选 & 填写进度 =====================
+function fillReasonDatalist() {
+  const el = $('reasonList');
+  if (!el) return;
+  const set = new Set(REASON_PRESETS);
+  if (STATIC) {
+    for (const r of snapItems()) {
+      if (r.verdict !== 'anomaly') continue;
+      const s = suggestReason(r);
+      if (s) set.add(s);
+    }
+  }
+  for (const k of Object.keys(MANUAL_REASONS)) {
+    const t = MANUAL_REASONS[k] && MANUAL_REASONS[k].text;
+    if (t) set.add(t);
+  }
+  el.innerHTML = [...set].map((v) => `<option value="${escapeHtml(v)}"></option>`).join('');
+}
+
+function updateReasonProgress() {
+  const el = $('reasonProgress');
+  if (!el || !STATIC) return;
+  let total = 0;
+  let filled = 0;
+  for (const r of snapItems()) {
+    if (r.verdict !== 'anomaly') continue;
+    total++;
+    if (manualReasonOf(r.erpOrderId || r.platformOrderId)) filled++;
+  }
+  el.textContent = total ? `原因已填 ${filled} / ${total}` : '';
+}
+
 // ===================== 数据加载 =====================
-function qs() {
-  return `scope=${encodeURIComponent(S.scope)}&q=${encodeURIComponent(S.q)}&shop=${encodeURIComponent(S.shop)}&sort=${encodeURIComponent(S.sort)}&page=${S.page}&pageSize=${S.pageSize}`;
+function qs(o = {}) {
+  const v = { scope: S.scope, q: S.q, shop: S.shop, sort: S.sort, page: S.page, pageSize: S.pageSize, ...o };
+  return `scope=${encodeURIComponent(v.scope)}&q=${encodeURIComponent(v.q)}&shop=${encodeURIComponent(v.shop)}&sort=${encodeURIComponent(v.sort)}&page=${v.page}&pageSize=${v.pageSize}`;
 }
 
 async function loadOrders() {
@@ -301,6 +509,7 @@ async function loadOrders() {
       if (res.error) throw new Error(res.error);
     }
     renderTable(res);
+    updateReasonProgress();
   } catch (e) {
     toast('加载订单失败：' + e.message);
   } finally {
@@ -528,6 +737,27 @@ function bind() {
   $('selShop').addEventListener('change', (e) => { S.shop = e.target.value; S.page = 1; loadOrders(); });
   $('btnPrev').addEventListener('click', () => { if (S.page > 1) { S.page--; loadOrders(); } });
   $('btnNext').addEventListener('click', () => { S.page++; loadOrders(); });
+
+  // 导出 CSV（当前筛选条件下的全部记录）
+  $('btnExport').addEventListener('click', exportCsv);
+
+  // 「原因分类」填写：事件委托（表格是整块重绘的，不能逐个绑）
+  $('tbody').addEventListener('input', (e) => {
+    const el = e.target.closest ? e.target.closest('.reason-input') : null;
+    if (!el) return;
+    setManualReason(el.dataset.id, el.value);
+    el.classList.toggle('edited', !!el.value.trim() && el.value.trim() !== el.dataset.sug);
+    updateReasonProgress();
+  });
+  // 失焦时若为空，回填系统建议，避免出现空白的分类
+  $('tbody').addEventListener('blur', (e) => {
+    const el = e.target.closest ? e.target.closest('.reason-input') : null;
+    if (!el || el.value.trim()) return;
+    el.value = el.dataset.sug || '待确认';
+    setManualReason(el.dataset.id, '');
+    el.classList.remove('edited');
+    updateReasonProgress();
+  }, true);
 }
 
 async function init() {
@@ -536,10 +766,11 @@ async function init() {
     document.title = '马帮物流渠道匹配检查看板（快照版）';
     const b = document.createElement('div');
     b.className = 'banner';
-    b.textContent = `📦 静态快照版 · 数据生成于 ${SNAP.generatedAt || '—'}，仅供查看。需要实时同步请使用云端/本地版。`;
+    b.textContent = `📦 静态快照版 · 数据生成于 ${SNAP.generatedAt || '—'}，仅供查看。「原因分类」列可直接下拉选择或手输，自动保存在本机浏览器；点「⤓ 导出 CSV」可把当前筛选结果连原因一起导出。`;
     document.querySelector('.topbar').after(b);
   }
   await loadState();
+  fillReasonDatalist();
   await loadOrders();
 }
 
