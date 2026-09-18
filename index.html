@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>马帮物流渠道匹配检查看板</title>
-  <link rel="stylesheet" href="style.css?v=2026-09-18%2020%3A43" />
+  <link rel="stylesheet" href="style.css?v=2026-09-18%2021%3A54" />
 </head>
 <body>
   <header class="topbar">
@@ -99,6 +99,8 @@
       <option value="100" selected>100 条/页</option>
       <option value="200">200 条/页</option>
     </select>
+    <button id="btnExport" class="btn ghost" title="把当前筛选结果（全部页）导出为 CSV，Excel 可直接打开，含「原因分类」列">⤓ 导出 CSV</button>
+    <span id="reasonProgress" class="reason-progress"></span>
     <span id="resultCount" class="result-count"></span>
   </section>
 
@@ -108,6 +110,7 @@
         <tr>
           <th>#</th>
           <th>判定</th>
+          <th>原因分类 <span class="th-hint">可填写</span></th>
           <th>订单编号</th>
           <th>店铺</th>
           <th>订单类型</th>
@@ -117,7 +120,7 @@
           <th>运单号</th>
           <th>目的国</th>
           <th>更新时间</th>
-          <th>异常原因</th>
+          <th>异常原因（系统判定）</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -188,28 +191,31 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="snapshot-core.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-0.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-1.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-2.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-3.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-4.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-5.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-6.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-7.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-8.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-9.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-10.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-11.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-12.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-13.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-14.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-15.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-16.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-17.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-18.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-19.js?v=2026-09-18%2020%3A43"></script>
-  <script src="snapshot-items-final.js?v=2026-09-18%2020%3A43"></script>
-  <script src="script.js?v=2026-09-18%2020%3A43"></script>
+  <!-- 「原因分类」输入框的下拉候选（由 script.js 填充） -->
+  <datalist id="reasonList"></datalist>
+
+  <script src="snapshot-core.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-0.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-1.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-2.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-3.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-4.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-5.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-6.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-7.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-8.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-9.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-10.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-11.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-12.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-13.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-14.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-15.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-16.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-17.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-18.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-19.js?v=2026-09-18%2021%3A54"></script>
+  <script src="snapshot-items-final.js?v=2026-09-18%2021%3A54"></script>
+  <script src="script.js?v=2026-09-18%2021%3A54"></script>
 </body>
 </html>
