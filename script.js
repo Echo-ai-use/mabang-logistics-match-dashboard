@@ -63,7 +63,7 @@ function snapItems() {
 
 const RANK = { anomaly: 0, pending: 1, ok: 2, na: 3 };
 
-function snapQuery({ scope, q, sort, page, pageSize }) {
+function snapQuery({ scope, q, shop, sort, page, pageSize }) {
   let list = snapItems();
   switch (scope) {
     case 'anomaly': list = list.filter((r) => r.verdict === 'anomaly'); break;
@@ -81,6 +81,7 @@ function snapQuery({ scope, q, sort, page, pageSize }) {
         .some((v) => String(v).toLowerCase().includes(kw))
     );
   }
+  if (shop) list = list.filter((r) => r.shopName === shop);
   const sorters = {
     anomaly_desc: (a, b) => (RANK[a.verdict] - RANK[b.verdict]) || String(b.updateTime).localeCompare(String(a.updateTime)),
     update_desc: (a, b) => String(b.updateTime || '').localeCompare(String(a.updateTime || '')),
@@ -115,6 +116,7 @@ const S = {
   state: null,
   scope: 'all',
   q: '',
+  shop: '',
   sort: 'anomaly_desc',
   page: 1,
   pageSize: 100,
@@ -225,7 +227,10 @@ function renderPanels() {
     name: c.name, total: c.total, anomaly: c.total, _shop: c.name,
   })), {
     emptyText: '暂无异常店铺',
-    onClick: (r) => { S.q = r._shop; $('inpSearch').value = r._shop; S.scope = 'anomaly'; S.page = 1; renderStats(); loadOrders(); },
+    onClick: (r) => {
+      S.shop = r._shop; S.q = ''; $('inpSearch').value = ''; $('selShop').value = r._shop;
+      S.scope = 'anomaly'; S.page = 1; renderStats(); loadOrders();
+    },
   });
 }
 
@@ -280,7 +285,7 @@ function renderTable(res) {
 
 // ===================== 数据加载 =====================
 function qs() {
-  return `scope=${encodeURIComponent(S.scope)}&q=${encodeURIComponent(S.q)}&sort=${encodeURIComponent(S.sort)}&page=${S.page}&pageSize=${S.pageSize}`;
+  return `scope=${encodeURIComponent(S.scope)}&q=${encodeURIComponent(S.q)}&shop=${encodeURIComponent(S.shop)}&sort=${encodeURIComponent(S.sort)}&page=${S.page}&pageSize=${S.pageSize}`;
 }
 
 async function loadOrders() {
@@ -312,6 +317,7 @@ async function loadState() {
     renderPanels();
     renderSyncInfo();
     fillSettings();
+    fillShopSelect();
     return st;
   } catch (e) {
     toast('加载状态失败：' + e.message);
@@ -386,6 +392,26 @@ function fillSettings() {
     $('cfgCreds').hidden = true;
     $('btnCfgSave').hidden = true;
   }
+}
+
+// 店铺筛选下拉：列出所有含异常订单的店铺（按异常数降序），供「按店铺筛选异常」使用
+function fillShopSelect() {
+  const sel = $('selShop');
+  if (!sel) return;
+  const items = snapItems();
+  const counts = {};
+  for (const r of items) {
+    if (r.shopName && r.verdict === 'anomaly') counts[r.shopName] = (counts[r.shopName] || 0) + 1;
+  }
+  const totalAnomaly = Object.values(counts).reduce((s, n) => s + n, 0);
+  const shops = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  const cur = S.shop;
+  let html = `<option value="">🏬 全部店铺（异常 ${totalAnomaly}）</option>`;
+  if (!counts[cur] && cur) html += `<option value="${escapeHtml(cur)}" selected>${escapeHtml(cur)}（${counts[cur] || 0}）</option>`;
+  for (const s of shops) {
+    html += `<option value="${escapeHtml(s)}"${s === cur ? ' selected' : ''}>${escapeHtml(s)}（${counts[s]}）</option>`;
+  }
+  sel.innerHTML = html;
 }
 
 let _syncRunning = false;
@@ -499,6 +525,7 @@ function bind() {
 
   $('selSort').addEventListener('change', (e) => { S.sort = e.target.value; S.page = 1; loadOrders(); });
   $('selPageSize').addEventListener('change', (e) => { S.pageSize = Number(e.target.value); S.page = 1; loadOrders(); });
+  $('selShop').addEventListener('change', (e) => { S.shop = e.target.value; S.page = 1; loadOrders(); });
   $('btnPrev').addEventListener('click', () => { if (S.page > 1) { S.page--; loadOrders(); } });
   $('btnNext').addEventListener('click', () => { S.page++; loadOrders(); });
 }
