@@ -377,7 +377,9 @@ function fillSettings() {
     + (ex.magneticAnyLogisticsShops && ex.magneticAnyLogisticsShops.length
       ? `<tr><td>例外·磁性 × 店铺 ${escapeHtml(ex.magneticAnyLogisticsShops.join('、'))}（不限物流商）</td><td>普货正常</td></tr>` : '')
     + (ex.usSuffixLogistics && ex.usSuffixLogistics.length
-      ? `<tr><td>美国订单 × 物流商 ${escapeHtml(ex.usSuffixLogistics.join('、'))}</td><td>线路名须<b>包含</b>「${escapeHtml(ex.usSuffix || '-美国')}」，否则 🔴 异常</td></tr>` : '');
+      ? `<tr><td>美国订单 × 物流商 ${escapeHtml(ex.usSuffixLogistics.join('、'))}</td><td>线路名须<b>包含</b>「${escapeHtml(ex.usSuffix || '-美国')}」，否则 🔴 异常</td></tr>` : '')
+    + (ex.specialCargoKeywords && ex.specialCargoKeywords.length
+      ? `<tr><td>无任何特殊属性的普货订单 × 渠道名含「${escapeHtml(ex.specialCargoKeywords.join(' / '))}」</td><td style="color:#e23b3b">→ 🔴 异常（普货误走特殊渠道）</td></tr>` : '');
 
   if (STATIC) {
     $('btnSync').hidden = true;
