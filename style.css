@@ -262,6 +262,31 @@ body {
 .select.full { width: 100%; }
 .select-label { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .result-count { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+/* 原因分类：填写进度 + 可编辑输入框 */
+.reason-progress { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+.reason-progress + .result-count { margin-left: 12px; }
+.reason-cell { min-width: 140px; }
+.reason-input {
+  width: 132px;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-family: inherit;
+  background: rgba(13, 22, 39, 0.85);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  outline: none;
+}
+.reason-input::placeholder { color: var(--muted); }
+.reason-input:hover { border-color: var(--line-strong); }
+.reason-input:focus { border-color: var(--cyan); box-shadow: 0 0 9px var(--primary-glow); }
+.reason-input.edited {
+  border-color: rgba(245, 158, 11, 0.75);
+  color: var(--warn);
+  box-shadow: 0 0 9px rgba(245, 158, 11, 0.3);
+}
+.th-hint { color: var(--muted); font-size: 10px; font-weight: 400; }
 .filter-pill {
   display: inline-flex; align-items: center; gap: 6px;
   background: rgba(34, 211, 238, 0.12); color: var(--cyan); border-radius: 999px;
