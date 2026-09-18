@@ -260,6 +260,7 @@ body {
 }
 .select:focus { border-color: var(--cyan); box-shadow: 0 0 10px var(--primary-glow); }
 .select.full { width: 100%; }
+.select-label { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .result-count { color: var(--muted); font-size: 12px; margin-left: auto; }
 .filter-pill {
   display: inline-flex; align-items: center; gap: 6px;
