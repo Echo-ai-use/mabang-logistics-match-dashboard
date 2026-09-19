@@ -608,7 +608,7 @@ function fillSettings() {
       ? `<tr><td>美国订单 × 物流商 ${escapeHtml(ex.usSuffixLogistics.join('、'))}</td><td>线路名须<b>包含</b>「${escapeHtml(ex.usSuffix || '-美国')}」，否则 🔴 异常</td></tr>` : '')
     + (ex.specialCargoKeywords && ex.specialCargoKeywords.length
       ? `<tr><td>无任何特殊属性的普货订单 × 渠道名含「${escapeHtml(ex.specialCargoKeywords.join(' / '))}」</td><td style="color:#e23b3b">→ 🔴 异常（普货误走特殊渠道）</td></tr>` : '')
-    + `<tr><td>整单仅「赠品 / 虚拟商品」<span class="lab-hint">（赠品取 isGift=1；虚拟按关键词 ${escapeHtml((ex.virtualKeywords || ['运费险', '虚拟']).join('、'))}）</span></td><td style="color:#1f9d5b">→ 🚫 不参与检查（优先级最高）</td></tr>`;
+    + `<tr><td>整单只有「赠品 / 虚拟商品」、<b>没有任何实际商品</b><br><span class="lab-hint">赠品取马帮 isGift=1；虚拟按关键词 ${escapeHtml((ex.virtualKeywords || ['运费险', '虚拟']).join('、'))}；赠品成本 ≥ ${escapeHtml(String(ex.realGoodsMinCost != null ? ex.realGoodsMinCost : 5))} 元 视为实际商品</span></td><td style="color:#1f9d5b">→ 🚫 不参与检查<br><span class="lab-hint">（优先级最高；有实际商品则照常检查）</span></td></tr>`;
 
   if (STATIC) {
     $('btnSync').hidden = true;
