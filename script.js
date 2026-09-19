@@ -15,6 +15,7 @@ const VERDICT_CLASS = { anomaly: 'anomaly', ok: 'ok', pending: 'pending', na: 'n
 const DEFAULT_ATTRS = [
   { key: 'battery', label: '电池' },
   { key: 'liquid', label: '液体' },
+  { key: 'cosmetic', label: '化妆品' },
   { key: 'paste', label: '膏体' },
   { key: 'knife', label: '刀具' },
   { key: 'powder', label: '粉末' },
@@ -39,13 +40,13 @@ const DEFAULT_CANSEND_OPTIONS = [
 // ===================== 异常原因分类（人工填写） =====================
 /** 特殊属性 key → 业务口径叫法（用户说法：电池叫「带电」） */
 const ATTR_TO_CARGO = {
-  battery: '带电', liquid: '液体', paste: '膏体', knife: '刀具',
-  powder: '粉末', magnetic: '磁性', flammable: '易燃品',
+  battery: '带电', liquid: '液体', cosmetic: '化妆品', paste: '膏体',
+  knife: '刀具', powder: '粉末', magnetic: '磁性', flammable: '易燃品',
 };
 
 /** 「原因分类」下拉候选（也可自由输入） */
 const REASON_PRESETS = [
-  '带电发成普货', '磁性发成普货', '液体发成普货', '膏体发成普货',
+  '带电发成普货', '磁性发成普货', '液体发成普货', '化妆品发成普货', '膏体发成普货',
   '粉末发成普货', '刀具发成普货', '易燃品发成普货',
   '普货发成带电', '普货发成特货', '普货发成化妆品',
   '美国单缺「-美国」后缀',
