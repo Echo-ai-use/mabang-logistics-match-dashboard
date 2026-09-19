@@ -125,6 +125,7 @@ const SNAP_FIELDS = [
   'verdict', 'erpOrderId', 'platformOrderId', 'shopName', 'canSendText',
   'channelName', 'attrText', 'attrs', 'itemTitles', 'trackNumber',
   'countryNameCN', 'updateTime', 'logisticsName', 'buyerName', 'reason',
+  'nonPhysical', // 规则5：整单只有赠品/虚拟商品 → 不参与检查
 ];
 
 let SNAP_ITEMS = null;
@@ -152,6 +153,7 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
     case 'ok': list = list.filter((r) => r.verdict === 'ok'); break;
     case 'special': list = list.filter((r) => r.hasSpecial); break;
     case 'pending': list = list.filter((r) => r.verdict === 'pending'); break;
+    case 'nonphysical': list = list.filter((r) => r.nonPhysical); break;
     default: break;
   }
   const kw = String(q || '').trim().toLowerCase();
@@ -249,6 +251,7 @@ function renderStats() {
   $('statAnomaly').textContent = fmtNum(st.anomaly);
   $('statOk').textContent = fmtNum(st.ok);
   $('statPending').textContent = fmtNum(st.pending);
+  $('statNonPhysical').textContent = fmtNum(st.nonPhysical);
 
   const rate = st.anomalyRate != null ? st.anomalyRate : 0;
   $('statAnomalySub').textContent = st.special
@@ -259,6 +262,9 @@ function renderStats() {
     : '含电池/液体/膏体等';
   $('statOkSub').textContent = st.special ? `占特殊属性订单 ${(100 - rate).toFixed(2)}%` : '已匹配正确';
   $('statPendingSub').textContent = '有特殊属性但渠道为空';
+  $('statNonPhysicalSub').textContent = st.total
+    ? `占全部订单 ${((st.nonPhysical / st.total) * 100).toFixed(2)}%`
+    : '整单仅赠品 / 虚拟商品';
 
   // 顶部卡片选中态
   document.querySelectorAll('.card.clickable').forEach((c) => {
@@ -358,7 +364,7 @@ function rowHtml(r, idx) {
 
   return `<tr class="${VERDICT_CLASS[v] || ''}">
     <td class="muted small">${idx}</td>
-    <td><span class="badge ${VERDICT_CLASS[v]}" title="${escapeHtml(r.reason || '')}">${escapeHtml(VERDICT_LABEL[v] || v)}</span></td>
+    <td><span class="badge ${r.nonPhysical ? 'na' : (VERDICT_CLASS[v] || '')}" title="${escapeHtml(r.nonPhysical ? '整单仅赠品/虚拟商品，不参与检查' : (r.reason || ''))}">${escapeHtml(r.nonPhysical ? '🚫 不参与' : (VERDICT_LABEL[v] || v))}</span></td>
     <td class="reason-cell">${reasonCellHtml(r, v)}</td>
     <td class="mono" title="内部单号：${escapeHtml(r.erpOrderId || '')}">${escapeHtml(r.platformOrderId || r.erpOrderId || '')}</td>
     <td class="ellip" title="${escapeHtml(r.shopName || '')}">${escapeHtml(r.shopName || '')}</td>
@@ -390,7 +396,7 @@ function renderTable(res) {
 }
 
 // ===================== 导出 CSV =====================
-const SCOPE_LABEL = { all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道' };
+const SCOPE_LABEL = { all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道', nonphysical: '不参与检查' };
 
 function csvCell(v) {
   const s = String(v === null || v === undefined ? '' : v);
@@ -601,7 +607,8 @@ function fillSettings() {
     + (ex.usSuffixLogistics && ex.usSuffixLogistics.length
       ? `<tr><td>美国订单 × 物流商 ${escapeHtml(ex.usSuffixLogistics.join('、'))}</td><td>线路名须<b>包含</b>「${escapeHtml(ex.usSuffix || '-美国')}」，否则 🔴 异常</td></tr>` : '')
     + (ex.specialCargoKeywords && ex.specialCargoKeywords.length
-      ? `<tr><td>无任何特殊属性的普货订单 × 渠道名含「${escapeHtml(ex.specialCargoKeywords.join(' / '))}」</td><td style="color:#e23b3b">→ 🔴 异常（普货误走特殊渠道）</td></tr>` : '');
+      ? `<tr><td>无任何特殊属性的普货订单 × 渠道名含「${escapeHtml(ex.specialCargoKeywords.join(' / '))}」</td><td style="color:#e23b3b">→ 🔴 异常（普货误走特殊渠道）</td></tr>` : '')
+    + `<tr><td>整单仅「赠品 / 虚拟商品」<span class="lab-hint">（赠品取 isGift=1；虚拟按关键词 ${escapeHtml((ex.virtualKeywords || ['运费险', '虚拟']).join('、'))}）</span></td><td style="color:#1f9d5b">→ 🚫 不参与检查（优先级最高）</td></tr>`;
 
   if (STATIC) {
     $('btnSync').hidden = true;
