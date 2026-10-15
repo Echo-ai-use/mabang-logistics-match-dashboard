@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>马帮物流渠道匹配检查看板</title>
-  <link rel="stylesheet" href="style.css?v=2026-10-15%2015%3A49" />
+  <link rel="stylesheet" href="style.css?v=2026-10-15%2016%3A23" />
 </head>
 <body>
   <header class="topbar">
@@ -52,6 +52,11 @@
       <div class="card-value" id="statNonPhysical">—</div>
       <div class="card-sub" id="statNonPhysicalSub">整单仅赠品 / 虚拟商品</div>
     </div>
+    <div class="card channel clickable" data-scope="channel_anomaly" title="按飞书物流渠道模板表检查，实际渠道与期望渠道不一致">
+      <div class="card-label">📋 渠道匹配异常</div>
+      <div class="card-value" id="statChannelAnomaly">—</div>
+      <div class="card-sub" id="statChannelAnomalySub">模板期望渠道 ≠ 实际渠道</div>
+    </div>
   </section>
 
   <section class="panels" id="panels">
@@ -76,6 +81,13 @@
       </div>
       <div class="bars" id="shopBars"></div>
     </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span>渠道匹配异常 · 店铺 TOP</span>
+        <span class="panel-hint">按物流渠道模板表</span>
+      </div>
+      <div class="bars" id="channelCheckShopBars"></div>
+    </div>
   </section>
 
   <section class="toolbar">
@@ -86,6 +98,8 @@
       <button class="tab" data-scope="special">仅特殊属性</button>
       <button class="tab" data-scope="pending">待分配渠道</button>
       <button class="tab" data-scope="nonphysical">🚫 不参与检查</button>
+      <button class="tab channel" data-scope="channel_anomaly">📋 渠道匹配异常</button>
+      <button class="tab channel" data-scope="channel_covered">📋 渠道匹配覆盖</button>
     </div>
     <input type="text" id="inpSearch" class="search" placeholder="搜索 订单编号 / 内部单号 / 店铺 / 买家 / 物流渠道 / 运单号 / 特殊属性…" />
     <span class="select-label">店铺</span>
@@ -129,6 +143,7 @@
           <th>命中商品</th>
           <th>运单号</th>
           <th>目的国</th>
+          <th>渠道匹配</th>
           <th>更新时间</th>
           <th>异常原因（系统判定）</th>
         </tr>
@@ -204,23 +219,29 @@
   <!-- 「原因分类」输入框的下拉候选（由 script.js 填充） -->
   <datalist id="reasonList"></datalist>
 
-  <script src="snapshot-core.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-0.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-1.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-2.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-3.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-4.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-5.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-6.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-7.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-8.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-9.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-10.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-11.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-12.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-13.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-14.js?v=2026-10-15%2015%3A49"></script>
-  <script src="snapshot-items-final.js?v=2026-10-15%2015%3A49"></script>
-  <script src="script.js?v=2026-10-15%2015%3A49"></script>
+  <script src="snapshot-core.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-0.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-1.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-2.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-3.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-4.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-5.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-6.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-7.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-8.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-9.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-10.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-11.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-12.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-13.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-14.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-15.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-16.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-17.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-18.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-19.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-20.js?v=2026-10-15%2016%3A23"></script>
+  <script src="snapshot-items-final.js?v=2026-10-15%2016%3A23"></script>
+  <script src="script.js?v=2026-10-15%2016%3A23"></script>
 </body>
 </html>
