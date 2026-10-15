@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>马帮物流渠道匹配检查看板</title>
-  <link rel="stylesheet" href="style.css?v=2026-10-15%2017%3A48" />
+  <link rel="stylesheet" href="style.css?v=2026-10-15%2018%3A03" />
 </head>
 <body>
   <header class="topbar">
@@ -21,99 +21,170 @@
     </div>
   </header>
 
+  <nav class="module-tabs" id="moduleTabs">
+    <button class="module-tab active" data-module="special">🔍 特殊属性检查</button>
+    <button class="module-tab" data-module="channel">📋 渠道匹配检查</button>
+    <button class="module-tab" data-module="zip">📮 邮编可达性检查</button>
+  </nav>
+
   <section class="stats" id="stats">
-    <div class="card clickable" data-scope="all" title="点击查看全部订单">
-      <div class="card-label">未发货订单总数</div>
-      <div class="card-value" id="statTotal">—</div>
-      <div class="card-sub" id="statTotalSub">待处理 + 配货中 + 待审核</div>
+    <!-- 模块：特殊属性检查 -->
+    <div class="module-group" data-module="special">
+      <div class="card clickable" data-scope="all" title="点击查看全部订单">
+        <div class="card-label">未发货订单总数</div>
+        <div class="card-value" id="statTotal">—</div>
+        <div class="card-sub" id="statTotalSub">待处理 + 配货中 + 待审核</div>
+      </div>
+      <div class="card clickable" data-scope="special" title="点击只看特殊属性订单">
+        <div class="card-label">特殊属性订单</div>
+        <div class="card-value" id="statSpecial">—</div>
+        <div class="card-sub" id="statSpecialSub">含电池/液体/膏体等</div>
+      </div>
+      <div class="card danger clickable" data-scope="anomaly" title="点击只看异常订单">
+        <div class="card-label">🔴 异常（特殊属性 × 普货渠道）</div>
+        <div class="card-value" id="statAnomaly">—</div>
+        <div class="card-sub" id="statAnomalySub">需要改物流渠道</div>
+      </div>
+      <div class="card ok clickable" data-scope="ok" title="点击只看正常订单">
+        <div class="card-label">✅ 正常（走专用渠道）</div>
+        <div class="card-value" id="statOk">—</div>
+        <div class="card-sub" id="statOkSub">已匹配正确</div>
+      </div>
+      <div class="card clickable" data-scope="pending" title="点击只看未分配渠道的订单">
+        <div class="card-label">⚠ 待分配物流渠道</div>
+        <div class="card-value" id="statPending">—</div>
+        <div class="card-sub" id="statPendingSub">有特殊属性但渠道为空</div>
+      </div>
+      <div class="card clickable" data-scope="nonphysical" title="整单只有赠品 / 虚拟商品，不参与物流匹配检查">
+        <div class="card-label">🚫 不参与检查</div>
+        <div class="card-value" id="statNonPhysical">—</div>
+        <div class="card-sub" id="statNonPhysicalSub">整单仅赠品 / 虚拟商品</div>
+      </div>
     </div>
-    <div class="card clickable" data-scope="special" title="点击只看特殊属性订单">
-      <div class="card-label">特殊属性订单</div>
-      <div class="card-value" id="statSpecial">—</div>
-      <div class="card-sub" id="statSpecialSub">含电池/液体/膏体等</div>
+
+    <!-- 模块：渠道匹配检查 -->
+    <div class="module-group hidden" data-module="channel">
+      <div class="card channel clickable" data-scope="channel_anomaly" title="实际渠道与期望渠道不一致">
+        <div class="card-label">📋 渠道匹配异常</div>
+        <div class="card-value" id="statChannelAnomaly">—</div>
+        <div class="card-sub" id="statChannelAnomalySub">模板期望渠道 ≠ 实际渠道</div>
+      </div>
+      <div class="card channel clickable" data-scope="channel_covered" title="命中店铺渠道规则且有结果">
+        <div class="card-label">📋 渠道规则覆盖</div>
+        <div class="card-value" id="statChannelCovered">—</div>
+        <div class="card-sub" id="statChannelCoveredSub">已匹配规则订单</div>
+      </div>
+      <div class="card clickable" data-scope="channel_no_match" title="有规则但 SKU/国家/重量/属性未匹配到任何渠道">
+        <div class="card-label">📋 渠道无匹配规则</div>
+        <div class="card-value" id="statChannelNoMatch">—</div>
+        <div class="card-sub" id="statChannelNoMatchSub">SKU/国家/重量/属性未命中</div>
+      </div>
+      <div class="card clickable" data-scope="channel_no_rule" title="该店铺在国家维度没有配置渠道模板">
+        <div class="card-label">📋 店铺无渠道规则</div>
+        <div class="card-value" id="statChannelNoRule">—</div>
+        <div class="card-sub" id="statChannelNoRuleSub">未配置渠道模板</div>
+      </div>
     </div>
-    <div class="card danger clickable" data-scope="anomaly" title="点击只看异常订单">
-      <div class="card-label">🔴 异常（特殊属性 × 普货渠道）</div>
-      <div class="card-value" id="statAnomaly">—</div>
-      <div class="card-sub" id="statAnomalySub">需要改物流渠道</div>
-    </div>
-    <div class="card ok clickable" data-scope="ok" title="点击只看正常订单">
-      <div class="card-label">✅ 正常（走专用渠道）</div>
-      <div class="card-value" id="statOk">—</div>
-      <div class="card-sub" id="statOkSub">已匹配正确</div>
-    </div>
-    <div class="card clickable" data-scope="pending" title="点击只看未分配渠道的订单">
-      <div class="card-label">⚠ 待分配物流渠道</div>
-      <div class="card-value" id="statPending">—</div>
-      <div class="card-sub" id="statPendingSub">有特殊属性但渠道为空</div>
-    </div>
-    <div class="card clickable" data-scope="nonphysical" title="整单只有赠品 / 虚拟商品，不参与物流匹配检查">
-      <div class="card-label">🚫 不参与检查</div>
-      <div class="card-value" id="statNonPhysical">—</div>
-      <div class="card-sub" id="statNonPhysicalSub">整单仅赠品 / 虚拟商品</div>
-    </div>
-    <div class="card channel clickable" data-scope="channel_anomaly" title="按飞书物流渠道模板表检查，实际渠道与期望渠道不一致">
-      <div class="card-label">📋 渠道匹配异常</div>
-      <div class="card-value" id="statChannelAnomaly">—</div>
-      <div class="card-sub" id="statChannelAnomalySub">模板期望渠道 ≠ 实际渠道</div>
-    </div>
-    <div class="card zip clickable" data-scope="zip_anomaly" title="按邮编可达性规则检查，渠道不可达指定邮编">
-      <div class="card-label">📮 邮编可达性异常</div>
-      <div class="card-value" id="statZipAnomaly">—</div>
-      <div class="card-sub" id="statZipAnomalySub">渠道不可达邮编</div>
+
+    <!-- 模块：邮编可达性检查 -->
+    <div class="module-group hidden" data-module="zip">
+      <div class="card zip clickable" data-scope="zip_anomaly" title="渠道不可达指定邮编">
+        <div class="card-label">📮 邮编不可达</div>
+        <div class="card-value" id="statZipAnomaly">—</div>
+        <div class="card-sub" id="statZipAnomalySub">渠道不可达邮编</div>
+      </div>
+      <div class="card zip clickable" data-scope="zip_covered" title="命中邮编规则且有结果">
+        <div class="card-label">📮 邮编规则覆盖</div>
+        <div class="card-value" id="statZipCovered">—</div>
+        <div class="card-sub" id="statZipCoveredSub">已匹配邮编规则订单</div>
+      </div>
+      <div class="card clickable" data-scope="zip_no_rule" title="该店铺渠道没有配置邮编规则">
+        <div class="card-label">📮 店铺无邮编规则</div>
+        <div class="card-value" id="statZipNoRule">—</div>
+        <div class="card-sub" id="statZipNoRuleSub">未配置邮编白名单</div>
+      </div>
+      <div class="card clickable" data-scope="zip_not_applicable" title="非美国订单或缺邮编，不参与邮编检查">
+        <div class="card-label">📮 不适用邮编检查</div>
+        <div class="card-value" id="statZipNotApplicable">—</div>
+        <div class="card-sub" id="statZipNotApplicableSub">非美国 / 缺邮编</div>
+      </div>
     </div>
   </section>
 
   <section class="panels" id="panels">
-    <div class="panel">
-      <div class="panel-head">
-        <span>特殊属性分布</span>
-        <span class="panel-hint">条形长度 = 命中订单数；红色部分 = 其中异常</span>
+    <!-- 模块：特殊属性检查 -->
+    <div class="module-group" data-module="special">
+      <div class="panel">
+        <div class="panel-head">
+          <span>特殊属性分布</span>
+          <span class="panel-hint">条形长度 = 命中订单数；红色部分 = 其中异常</span>
+        </div>
+        <div class="bars" id="attrBars"></div>
       </div>
-      <div class="bars" id="attrBars"></div>
+      <div class="panel">
+        <div class="panel-head">
+          <span>异常渠道 TOP（含「普货」的渠道）</span>
+          <span class="panel-hint">点击可筛选</span>
+        </div>
+        <div class="bars" id="channelBars"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <span>异常订单 · 涉事店铺 TOP</span>
+          <span class="panel-hint">点击可筛选</span>
+        </div>
+        <div class="bars" id="shopBars"></div>
+      </div>
     </div>
-    <div class="panel">
-      <div class="panel-head">
-        <span>异常渠道 TOP（含「普货」的渠道）</span>
-        <span class="panel-hint">点击可筛选</span>
+
+    <!-- 模块：渠道匹配检查 -->
+    <div class="module-group hidden" data-module="channel">
+      <div class="panel">
+        <div class="panel-head">
+          <span>渠道匹配异常 · 店铺 TOP</span>
+          <span class="panel-hint">按物流渠道模板表</span>
+        </div>
+        <div class="bars" id="channelCheckShopBars"></div>
       </div>
-      <div class="bars" id="channelBars"></div>
     </div>
-    <div class="panel">
-      <div class="panel-head">
-        <span>异常订单 · 涉事店铺 TOP</span>
-        <span class="panel-hint">点击可筛选</span>
+
+    <!-- 模块：邮编可达性检查 -->
+    <div class="module-group hidden" data-module="zip">
+      <div class="panel">
+        <div class="panel-head">
+          <span>邮编可达性异常 · 店铺 TOP</span>
+          <span class="panel-hint">按邮编可达性规则</span>
+        </div>
+        <div class="bars" id="zipCheckShopBars"></div>
       </div>
-      <div class="bars" id="shopBars"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <span>渠道匹配异常 · 店铺 TOP</span>
-        <span class="panel-hint">按物流渠道模板表</span>
-      </div>
-      <div class="bars" id="channelCheckShopBars"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <span>邮编可达性异常 · 店铺 TOP</span>
-        <span class="panel-hint">按邮编可达性规则</span>
-      </div>
-      <div class="bars" id="zipCheckShopBars"></div>
     </div>
   </section>
 
   <section class="toolbar">
     <div class="seg-tabs" id="scopeTabs">
-      <button class="tab active" data-scope="all">全部</button>
-      <button class="tab danger" data-scope="anomaly">仅异常</button>
-      <button class="tab ok" data-scope="ok">仅正常</button>
-      <button class="tab" data-scope="special">仅特殊属性</button>
-      <button class="tab" data-scope="pending">待分配渠道</button>
-      <button class="tab" data-scope="nonphysical">🚫 不参与检查</button>
-      <button class="tab channel" data-scope="channel_anomaly">📋 渠道匹配异常</button>
-      <button class="tab channel" data-scope="channel_covered">📋 渠道匹配覆盖</button>
-      <button class="tab zip" data-scope="zip_anomaly">📮 邮编不可达</button>
-      <button class="tab zip" data-scope="zip_covered">📮 邮编覆盖</button>
+      <!-- 模块：特殊属性检查 -->
+      <div class="module-group" data-module="special">
+        <button class="tab active" data-scope="all">全部</button>
+        <button class="tab danger" data-scope="anomaly">仅异常</button>
+        <button class="tab ok" data-scope="ok">仅正常</button>
+        <button class="tab" data-scope="special">仅特殊属性</button>
+        <button class="tab" data-scope="pending">待分配渠道</button>
+        <button class="tab" data-scope="nonphysical">🚫 不参与检查</button>
+      </div>
+      <!-- 模块：渠道匹配检查 -->
+      <div class="module-group hidden" data-module="channel">
+        <button class="tab channel" data-scope="channel_anomaly">📋 渠道匹配异常</button>
+        <button class="tab channel" data-scope="channel_covered">📋 渠道匹配覆盖</button>
+        <button class="tab" data-scope="channel_no_match">📋 渠道无匹配规则</button>
+        <button class="tab" data-scope="channel_no_rule">📋 店铺无渠道规则</button>
+      </div>
+      <!-- 模块：邮编可达性检查 -->
+      <div class="module-group hidden" data-module="zip">
+        <button class="tab zip" data-scope="zip_anomaly">📮 邮编不可达</button>
+        <button class="tab zip" data-scope="zip_covered">📮 邮编规则覆盖</button>
+        <button class="tab" data-scope="zip_no_rule">📮 店铺无邮编规则</button>
+        <button class="tab" data-scope="zip_not_applicable">📮 不适用邮编检查</button>
+      </div>
     </div>
     <input type="text" id="inpSearch" class="search" placeholder="搜索 订单编号 / 内部单号 / 店铺 / 买家 / 物流渠道 / 运单号 / 特殊属性…" />
     <span class="select-label">店铺</span>
@@ -153,12 +224,12 @@
           <th>店铺</th>
           <th>订单类型</th>
           <th>物流渠道名称</th>
-          <th>特殊属性</th>
-          <th>命中商品</th>
-          <th>运单号</th>
+          <th data-module="special">特殊属性</th>
+          <th data-module="special">命中商品</th>
+          <th data-module="special">运单号</th>
           <th>目的国</th>
-          <th>渠道匹配</th>
-          <th>邮编匹配</th>
+          <th data-module="channel">渠道匹配</th>
+          <th data-module="zip">邮编匹配</th>
           <th>更新时间</th>
           <th>异常原因（系统判定）</th>
         </tr>
@@ -234,34 +305,34 @@
   <!-- 「原因分类」输入框的下拉候选（由 script.js 填充） -->
   <datalist id="reasonList"></datalist>
 
-  <script src="snapshot-core.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-0.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-1.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-2.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-3.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-4.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-5.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-6.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-7.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-8.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-9.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-10.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-11.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-12.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-13.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-14.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-15.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-16.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-17.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-18.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-19.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-20.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-21.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-22.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-23.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-24.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-25.js?v=2026-10-15%2017%3A48"></script>
-  <script src="snapshot-items-final.js?v=2026-10-15%2017%3A48"></script>
-  <script src="script.js?v=2026-10-15%2017%3A48"></script>
+  <script src="snapshot-core.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-0.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-1.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-2.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-3.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-4.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-5.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-6.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-7.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-8.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-9.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-10.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-11.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-12.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-13.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-14.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-15.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-16.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-17.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-18.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-19.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-20.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-21.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-22.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-23.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-24.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-25.js?v=2026-10-15%2018%3A03"></script>
+  <script src="snapshot-items-final.js?v=2026-10-15%2018%3A03"></script>
+  <script src="script.js?v=2026-10-15%2018%3A03"></script>
 </body>
 </html>
