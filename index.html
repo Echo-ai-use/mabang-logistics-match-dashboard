@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>马帮物流渠道匹配检查看板</title>
-  <link rel="stylesheet" href="style.css?v=2026-10-15%2018%3A05" />
+  <link rel="stylesheet" href="style.css?v=2026-10-15%2018%3A55" />
 </head>
 <body>
   <header class="topbar">
@@ -21,13 +21,16 @@
     </div>
   </header>
 
-  <nav class="module-tabs" id="moduleTabs">
-    <button class="module-tab active" data-module="special">🔍 特殊属性检查</button>
-    <button class="module-tab" data-module="channel">📋 渠道匹配检查</button>
-    <button class="module-tab" data-module="zip">📮 邮编可达性检查</button>
-  </nav>
+  <div class="layout">
+    <nav class="module-tabs" id="moduleTabs">
+      <button class="module-tab active" data-module="special">🔍 特殊属性检查</button>
+      <button class="module-tab" data-module="channel">📋 渠道匹配检查</button>
+      <button class="module-tab" data-module="zip">📮 邮编可达性检查</button>
+    </nav>
 
-  <section class="stats" id="stats">
+    <div class="main-content">
+
+      <section class="stats" id="stats">
     <!-- 模块：特殊属性检查 -->
     <div class="module-group" data-module="special">
       <div class="card clickable" data-scope="all" title="点击查看全部订单">
@@ -73,6 +76,11 @@
         <div class="card-label">📋 渠道规则覆盖</div>
         <div class="card-value" id="statChannelCovered">—</div>
         <div class="card-sub" id="statChannelCoveredSub">已匹配规则订单</div>
+      </div>
+      <div class="card clickable" data-scope="channel_pending" title="已命中规则但实际渠道为空，未分配">
+        <div class="card-label">📋 渠道待分配</div>
+        <div class="card-value" id="statChannelPending">—</div>
+        <div class="card-sub" id="statChannelPendingSub">实际渠道未分配</div>
       </div>
       <div class="card clickable" data-scope="channel_no_match" title="有规则但 SKU/国家/重量/属性未匹配到任何渠道">
         <div class="card-label">📋 渠道无匹配规则</div>
@@ -175,6 +183,7 @@
       <div class="module-group hidden" data-module="channel">
         <button class="tab channel" data-scope="channel_anomaly">📋 渠道匹配异常</button>
         <button class="tab channel" data-scope="channel_covered">📋 渠道匹配覆盖</button>
+        <button class="tab" data-scope="channel_pending">📋 渠道待分配</button>
         <button class="tab" data-scope="channel_no_match">📋 渠道无匹配规则</button>
         <button class="tab" data-scope="channel_no_rule">📋 店铺无渠道规则</button>
       </div>
@@ -241,7 +250,10 @@
       <span id="pageInfo"></span>
       <button id="btnNext" class="btn ghost">下一页</button>
     </div>
-  </main>
+      </main>
+
+    </div>
+  </div>
 
   <!-- 设置弹窗 -->
   <div class="modal-mask" id="settingsModal" hidden>
@@ -305,34 +317,35 @@
   <!-- 「原因分类」输入框的下拉候选（由 script.js 填充） -->
   <datalist id="reasonList"></datalist>
 
-  <script src="snapshot-core.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-0.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-1.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-2.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-3.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-4.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-5.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-6.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-7.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-8.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-9.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-10.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-11.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-12.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-13.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-14.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-15.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-16.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-17.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-18.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-19.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-20.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-21.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-22.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-23.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-24.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-25.js?v=2026-10-15%2018%3A05"></script>
-  <script src="snapshot-items-final.js?v=2026-10-15%2018%3A05"></script>
-  <script src="script.js?v=2026-10-15%2018%3A05"></script>
+  <script src="snapshot-core.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-0.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-1.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-2.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-3.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-4.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-5.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-6.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-7.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-8.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-9.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-10.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-11.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-12.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-13.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-14.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-15.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-16.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-17.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-18.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-19.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-20.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-21.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-22.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-23.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-24.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-25.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-26.js?v=2026-10-15%2018%3A55"></script>
+  <script src="snapshot-items-final.js?v=2026-10-15%2018%3A55"></script>
+  <script src="script.js?v=2026-10-15%2018%3A55"></script>
 </body>
 </html>
