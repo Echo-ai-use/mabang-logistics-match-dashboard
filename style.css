@@ -28,6 +28,7 @@
 
 /* 关键：作者样式的 display 会盖掉 UA 的 [hidden]{display:none}，必须显式兜底 */
 [hidden] { display: none !important; }
+.hidden { display: none !important; }
 
 body {
   margin: 0;
@@ -65,6 +66,46 @@ body {
 .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .subtitle b { color: var(--ink); }
 .txt-danger { color: var(--danger); font-weight: 700; text-shadow: 0 0 8px var(--danger-glow); }
+/* ---------------- 功能模块切换 ---------------- */
+.module-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 14px 28px 0;
+  background: transparent;
+}
+.module-tab {
+  border: 1px solid var(--line);
+  background: rgba(13, 22, 39, 0.6);
+  color: var(--muted);
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .15s ease;
+  backdrop-filter: blur(6px);
+}
+.module-tab:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: rgba(34, 211, 238, 0.08);
+}
+.module-tab.active {
+  color: var(--primary-ink);
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  border-color: transparent;
+  box-shadow: 0 0 16px var(--primary-glow);
+  font-weight: 600;
+}
+.module-tab[data-module="channel"].active {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+}
+.module-tab[data-module="zip"].active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
 .actions { display: flex; align-items: center; gap: 10px; }
 .sync-info {
   color: var(--muted);
@@ -105,10 +146,19 @@ body {
 
 /* ---------------- 统计卡 ---------------- */
 .stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 28px 4px;
+}
+.module-group[data-module] {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 16px;
-  padding: 20px 28px 4px;
+}
+.module-group[data-module="channel"],
+.module-group[data-module="zip"] {
+  grid-template-columns: repeat(4, 1fr);
 }
 .card {
   background: var(--card);
@@ -185,10 +235,20 @@ body {
 
 /* ---------------- 分布面板 ---------------- */
 .panels {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   padding: 16px 28px 0;
+}
+.panels .module-group[data-module] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.panels .module-group[data-module="channel"],
+.panels .module-group[data-module="zip"] {
+  grid-template-columns: 1fr;
+  max-width: 420px;
 }
 .panel {
   background: var(--card);
