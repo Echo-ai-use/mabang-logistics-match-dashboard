@@ -167,7 +167,8 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
     case 'nonphysical': list = list.filter((r) => r.nonPhysical); break;
     case 'channel_anomaly': list = list.filter((r) => r.channelCheckStatus === 'anomaly'); break;
     case 'channel_ok': list = list.filter((r) => r.channelCheckStatus === 'ok'); break;
-    case 'channel_covered': list = list.filter((r) => r.channelCheckStatus && r.channelCheckStatus !== 'no_rule'); break;
+    case 'channel_covered': list = list.filter((r) => r.channelCheckStatus === 'ok' || r.channelCheckStatus === 'anomaly'); break;
+    case 'channel_pending': list = list.filter((r) => r.channelCheckStatus === 'pending'); break;
     case 'channel_no_match': list = list.filter((r) => r.channelCheckStatus === 'no_match'); break;
     case 'channel_no_rule': list = list.filter((r) => r.channelCheckStatus === 'no_rule'); break;
     case 'zip_anomaly': list = list.filter((r) => r.zipCheckStatus === 'anomaly'); break;
@@ -322,6 +323,7 @@ function renderStats() {
   // 渠道匹配模块
   $('statChannelAnomaly').textContent = fmtNum(st.channelCheckAnomaly);
   $('statChannelCovered').textContent = fmtNum(st.channelCheckCovered);
+  $('statChannelPending').textContent = fmtNum(st.channelCheckPending);
   $('statChannelNoMatch').textContent = fmtNum(st.channelCheckNoMatch);
   $('statChannelNoRule').textContent = fmtNum(st.channelCheckNoRule);
   $('statChannelAnomalySub').textContent = st.channelCheckCovered
@@ -330,6 +332,9 @@ function renderStats() {
   $('statChannelCoveredSub').textContent = st.total
     ? `占全部订单 ${((st.channelCheckCovered / st.total) * 100).toFixed(2)}%`
     : '有规则且命中 SKU/国家/重量/属性';
+  $('statChannelPendingSub').textContent = st.total
+    ? `占全部订单 ${((st.channelCheckPending / st.total) * 100).toFixed(2)}%`
+    : '实际渠道未分配';
   $('statChannelNoMatchSub').textContent = '有规则但 SKU/国家/重量/属性未命中';
   $('statChannelNoRuleSub').textContent = '该店铺在国家维度未配置渠道模板';
 
@@ -469,11 +474,12 @@ function rowHtml(r, idx) {
   const chLabel = {
     ok: '✅ 匹配',
     anomaly: '❌ 不匹配',
+    pending: '⏸ 未分配',
     no_match: '无匹配',
     no_rule: '无规则',
     skipped: '跳过',
   }[chs] || '—';
-  const chCls = chs === 'ok' ? 'ok' : chs === 'anomaly' ? 'anomaly' : 'na';
+  const chCls = chs === 'ok' ? 'ok' : chs === 'anomaly' ? 'anomaly' : chs === 'pending' ? 'pending' : 'na';
   const chTip = chs === 'anomaly'
     ? `期望：${escapeHtml(r.channelCheckExpected || '')}\n实际：${escapeHtml(r.channelCheckActual || '')}\n${escapeHtml(r.channelCheckReason || '')}`
     : escapeHtml(r.channelCheckReason || chLabel);
@@ -542,7 +548,7 @@ function renderTable(res) {
 const SCOPE_LABEL = {
   all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道', nonphysical: '不参与检查',
   channel_anomaly: '渠道匹配异常', channel_ok: '渠道匹配正常', channel_covered: '渠道规则覆盖',
-  channel_no_match: '渠道无匹配规则', channel_no_rule: '店铺无渠道规则',
+  channel_no_match: '渠道无匹配规则', channel_no_rule: '店铺无渠道规则', channel_pending: '渠道待分配',
   zip_anomaly: '邮编不可达', zip_ok: '邮编可达', zip_covered: '邮编规则覆盖',
   zip_no_rule: '店铺无邮编规则', zip_not_applicable: '非美国订单',
 };
