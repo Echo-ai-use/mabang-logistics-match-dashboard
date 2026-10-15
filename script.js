@@ -127,6 +127,7 @@ const SNAP_FIELDS = [
   'countryNameCN', 'updateTime', 'logisticsName', 'buyerName', 'reason',
   'nonPhysical', // 规则5：整单只有赠品/虚拟商品 → 不参与检查
   'channelCheckStatus', 'channelCheckExpected', 'channelCheckActual', 'channelCheckReason',
+  'zipCheckStatus', 'zipCheckRuleName', 'zipCheckChannel', 'zipCheckPostCode', 'zipCheckReason',
 ];
 
 let SNAP_ITEMS = null;
@@ -143,6 +144,11 @@ function snapItems() {
     it.channelCheckExpected = it.channelCheckExpected || '';
     it.channelCheckActual = it.channelCheckActual || '';
     it.channelCheckReason = it.channelCheckReason || '';
+    it.zipCheckStatus = it.zipCheckStatus || '';
+    it.zipCheckRuleName = it.zipCheckRuleName || '';
+    it.zipCheckChannel = it.zipCheckChannel || '';
+    it.zipCheckPostCode = it.zipCheckPostCode || '';
+    it.zipCheckReason = it.zipCheckReason || '';
     return it;
   });
   return SNAP_ITEMS;
@@ -164,6 +170,11 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
     case 'channel_covered': list = list.filter((r) => r.channelCheckStatus && r.channelCheckStatus !== 'no_rule'); break;
     case 'channel_no_match': list = list.filter((r) => r.channelCheckStatus === 'no_match'); break;
     case 'channel_no_rule': list = list.filter((r) => r.channelCheckStatus === 'no_rule'); break;
+    case 'zip_anomaly': list = list.filter((r) => r.zipCheckStatus === 'anomaly'); break;
+    case 'zip_ok': list = list.filter((r) => r.zipCheckStatus === 'ok'); break;
+    case 'zip_covered': list = list.filter((r) => r.zipCheckStatus === 'ok' || r.zipCheckStatus === 'anomaly'); break;
+    case 'zip_no_rule': list = list.filter((r) => r.zipCheckStatus === 'no_rule'); break;
+    case 'zip_not_applicable': list = list.filter((r) => r.zipCheckStatus === 'not_applicable'); break;
     default: break;
   }
   const kw = String(q || '').trim().toLowerCase();
@@ -173,6 +184,7 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
         r.logisticsName, r.trackNumber, r.countryNameCN, r.attrText,
         effectiveReason(r), r.reason,
         r.channelCheckStatus, r.channelCheckExpected, r.channelCheckActual, r.channelCheckReason,
+        r.zipCheckStatus, r.zipCheckRuleName, r.zipCheckChannel, r.zipCheckPostCode, r.zipCheckReason,
         ...(r.itemTitles || [])]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(kw))
@@ -265,6 +277,7 @@ function renderStats() {
   $('statPending').textContent = fmtNum(st.pending);
   $('statNonPhysical').textContent = fmtNum(st.nonPhysical);
   $('statChannelAnomaly').textContent = fmtNum(st.channelCheckAnomaly);
+  $('statZipAnomaly').textContent = fmtNum(st.zipCheckAnomaly);
 
   const rate = st.anomalyRate != null ? st.anomalyRate : 0;
   $('statAnomalySub').textContent = st.special
@@ -281,6 +294,9 @@ function renderStats() {
   $('statChannelAnomalySub').textContent = st.channelCheckCovered
     ? `占规则覆盖订单 ${((st.channelCheckAnomaly / st.channelCheckCovered) * 100).toFixed(2)}%`
     : '模板期望渠道 ≠ 实际渠道';
+  $('statZipAnomalySub').textContent = st.zipCheckCovered
+    ? `占规则覆盖订单 ${((st.zipCheckAnomaly / st.zipCheckCovered) * 100).toFixed(2)}%`
+    : '渠道不可达邮编';
 
   // 顶部卡片选中态
   document.querySelectorAll('.card.clickable').forEach((c) => {
@@ -356,6 +372,17 @@ function renderPanels() {
       S.scope = 'channel_anomaly'; S.page = 1; renderStats(); loadOrders();
     },
   });
+
+  renderBars('zipCheckShopBars', (st.zipCheckShopStats || []).slice(0, 15).map((c) => ({
+    name: c.name, total: c.total, anomaly: c.total, _shop: c.name,
+  })), {
+    emptyText: '暂无邮编可达性异常店铺',
+    onClick: (r) => {
+      S.shop = r._shop; S.q = ''; S.reason = ''; $('inpSearch').value = ''; $('selShop').value = r._shop;
+      $('selReason').value = '';
+      S.scope = 'zip_anomaly'; S.page = 1; renderStats(); loadOrders();
+    },
+  });
 }
 
 // ===================== 渲染：表格 =====================
@@ -409,6 +436,23 @@ function rowHtml(r, idx) {
         : '')
     : '<span class="muted small">—</span>';
 
+  const zs = r.zipCheckStatus || '';
+  const zLabel = {
+    ok: '✅ 可达',
+    anomaly: '❌ 不可达',
+    no_rule: '无规则',
+    not_applicable: '不适用',
+  }[zs] || '—';
+  const zCls = zs === 'ok' ? 'ok' : zs === 'anomaly' ? 'anomaly' : 'na';
+  const zTip = zs ? escapeHtml(r.zipCheckReason || zLabel) : '';
+  const zipHtml = zs
+    ? `<span class="badge ${zCls}" title="${zTip}">${zLabel}</span>`
+      + (zs === 'anomaly'
+        ? `<div class="small ellip" title="规则：${escapeHtml(r.zipCheckRuleName || '')}">规则：${escapeHtml(r.zipCheckRuleName || '')}</div>`
+          + `<div class="small ellip" title="邮编：${escapeHtml(r.zipCheckPostCode || '')}">邮编：${escapeHtml(r.zipCheckPostCode || '')}</div>`
+        : '')
+    : '<span class="muted small">—</span>';
+
   return `<tr class="${VERDICT_CLASS[v] || ''}">
     <td class="muted small">${idx}</td>
     <td><span class="badge ${r.nonPhysical ? 'na' : (VERDICT_CLASS[v] || '')}" title="${escapeHtml(r.nonPhysical ? '整单仅赠品/虚拟商品，不参与检查' : (r.reason || ''))}">${escapeHtml(r.nonPhysical ? '🚫 不参与' : (VERDICT_LABEL[v] || v))}</span></td>
@@ -422,6 +466,7 @@ function rowHtml(r, idx) {
     <td class="mono">${escapeHtml(r.trackNumber || '')}</td>
     <td class="small">${escapeHtml(r.countryNameCN || r.countryCode || '')}</td>
     <td class="channel-check-cell">${chHtml}</td>
+    <td class="zip-check-cell">${zipHtml}</td>
     <td class="mono small">${escapeHtml((r.updateTime || '').slice(0, 16))}</td>
     <td class="small ${v === 'anomaly' && r.reason ? 'txt-danger' : 'muted'}">${escapeHtml(r.reason || (v === 'anomaly' ? '—' : ''))}</td>
   </tr>`;
@@ -433,7 +478,7 @@ function renderTable(res) {
     const start = (res.page - 1) * res.pageSize;
     tbody.innerHTML = res.items.map((r, i) => rowHtml(r, start + i + 1)).join('');
   } else {
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
   }
   // 计数/分页必须无条件更新，否则「筛选后 0 条」时会显示上一次的旧数字
   const totalPages = Math.max(1, Math.ceil(res.total / res.pageSize));
@@ -448,6 +493,8 @@ const SCOPE_LABEL = {
   all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道', nonphysical: '不参与检查',
   channel_anomaly: '渠道匹配异常', channel_ok: '渠道匹配正常', channel_covered: '渠道规则覆盖',
   channel_no_match: '渠道无匹配规则', channel_no_rule: '店铺无渠道规则',
+  zip_anomaly: '邮编不可达', zip_ok: '邮编可达', zip_covered: '邮编规则覆盖',
+  zip_no_rule: '店铺无邮编规则', zip_not_applicable: '非美国订单',
 };
 
 function csvCell(v) {
@@ -481,6 +528,7 @@ async function exportCsv() {
     const head = [
       '序号', '判定', '订单编号', '内部单号', '店铺', '订单类型', '物流渠道名称', '物流商',
       '特殊属性', '命中商品', '运单号', '目的国', '渠道匹配状态', '期望渠道', '实际渠道', '渠道匹配原因',
+      '邮编匹配状态', '邮编规则', '匹配渠道', '邮编', '邮编匹配原因',
       '更新时间', '异常原因（系统判定）', '原因分类', '原因来源',
     ];
     const rows = list.map((r, i) => {
@@ -497,6 +545,7 @@ async function exportCsv() {
         (r.itemTitles || []).filter(Boolean).join(' / '), r.trackNumber || '',
         r.countryNameCN || r.countryCode || '',
         r.channelCheckStatus || '', r.channelCheckExpected || '', r.channelCheckActual || '', r.channelCheckReason || '',
+        r.zipCheckStatus || '', r.zipCheckRuleName || '', r.zipCheckChannel || '', r.zipCheckPostCode || '', r.zipCheckReason || '',
         r.updateTime || '', r.reason || '',
         manual || (v === 'anomaly' ? suggestReason(r) : ''),
         manual ? '人工填写' : (v === 'anomaly' ? '系统建议' : ''),
