@@ -527,7 +527,8 @@ function renderTable(res) {
     const start = (res.page - 1) * res.pageSize;
     tbody.innerHTML = res.items.map((r, i) => rowHtml(r, start + i + 1)).join('');
   } else {
-    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
+    const emptyColSpan = { special: 13, channel: 11, zip: 11 }[S.module] || 11;
+    tbody.innerHTML = `<tr><td colspan="${emptyColSpan}" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>`;
   }
   // 计数/分页必须无条件更新，否则「筛选后 0 条」时会显示上一次的旧数字
   const totalPages = Math.max(1, Math.ceil(res.total / res.pageSize));
