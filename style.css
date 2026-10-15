@@ -106,7 +106,7 @@ body {
 /* ---------------- 统计卡 ---------------- */
 .stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   padding: 20px 28px 4px;
 }
@@ -153,6 +153,15 @@ body {
   background: linear-gradient(180deg, rgba(52, 211, 153, 0.08), var(--card));
 }
 .card.ok::before { background: linear-gradient(90deg, transparent, var(--ok), transparent); }
+.card.channel {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08), var(--card));
+}
+.card.channel::before { background: linear-gradient(90deg, transparent, #a855f7, transparent); }
+.card.channel .card-value {
+  color: #c084fc;
+  text-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+}
 .card-label { color: var(--muted); font-size: 13px; }
 .card-value { font-size: 30px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .card-sub { color: var(--muted); font-size: 11px; margin-top: 2px; min-height: 15px; }
@@ -168,7 +177,7 @@ body {
 /* ---------------- 分布面板 ---------------- */
 .panels {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 16px 28px 0;
 }
@@ -235,6 +244,7 @@ body {
 }
 .seg-tabs .tab.active.danger { color: var(--danger); border-color: rgba(248, 113, 113, 0.45); background: var(--danger-bg); }
 .seg-tabs .tab.active.ok { color: var(--ok); border-color: rgba(52, 211, 153, 0.45); background: var(--ok-bg); }
+.seg-tabs .tab.active.channel { color: #c084fc; border-color: rgba(168, 85, 247, 0.45); background: rgba(168, 85, 247, 0.12); }
 
 .search {
   flex: 1 1 260px;
@@ -330,6 +340,9 @@ body {
 .badge.ok { background: var(--ok-bg); color: var(--ok); box-shadow: 0 0 8px var(--ok-glow); }
 .badge.pending { background: var(--warn-bg); color: var(--warn); box-shadow: 0 0 8px var(--warn-glow); }
 .badge.na { background: rgba(125, 160, 195, 0.15); color: var(--muted); }
+
+.channel-check-cell { min-width: 160px; }
+.channel-check-cell .small { color: var(--muted); max-width: 220px; }
 
 .attr-chip {
   display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 12px;
