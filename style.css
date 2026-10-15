@@ -41,6 +41,8 @@ body {
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -66,28 +68,47 @@ body {
 .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .subtitle b { color: var(--ink); }
 .txt-danger { color: var(--danger); font-weight: 700; text-shadow: 0 0 8px var(--danger-glow); }
-/* ---------------- 功能模块切换 ---------------- */
+/* ---------------- 整体布局：左侧模块导航 ---------------- */
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------- 功能模块切换（左侧边栏） ---------------- */
 .module-tabs {
   display: flex;
-  gap: 10px;
-  padding: 14px 28px 0;
-  background: transparent;
+  flex-direction: column;
+  gap: 8px;
+  width: 186px;
+  flex-shrink: 0;
+  padding: 16px 12px;
+  background: var(--card);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
 }
 .module-tab {
-  border: 1px solid var(--line);
-  background: rgba(13, 22, 39, 0.6);
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--muted);
-  padding: 10px 18px;
+  padding: 12px 14px;
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all .15s ease;
-  backdrop-filter: blur(6px);
 }
 .module-tab:hover {
   color: var(--ink);
-  border-color: var(--line-strong);
   background: rgba(34, 211, 238, 0.08);
 }
 .module-tab.active {
@@ -156,7 +177,9 @@ body {
   grid-template-columns: repeat(6, 1fr);
   gap: 16px;
 }
-.module-group[data-module="channel"],
+.module-group[data-module="channel"] {
+  grid-template-columns: repeat(5, 1fr);
+}
 .module-group[data-module="zip"] {
   grid-template-columns: repeat(4, 1fr);
 }
@@ -503,15 +526,28 @@ body {
   background: var(--warn-bg); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--warn); font-size: 13px;
 }
 
+@media (max-width: 1260px) {
+  .module-group[data-module="channel"] { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 1180px) {
   .panels .module-group[data-module="special"] { grid-template-columns: 1fr 1fr; }
+  .module-group[data-module="channel"] { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 860px) {
+  .layout { flex-direction: column; }
+  .module-tabs {
+    flex-direction: row;
+    width: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 12px;
+    overflow-x: auto;
+  }
+  .module-tab { width: auto; white-space: nowrap; }
   .module-group[data-module] { grid-template-columns: repeat(2, 1fr); }
   .panels .module-group[data-module] { grid-template-columns: 1fr; }
   .topbar { align-items: flex-start; }
   .sync-info { text-align: left; }
-  .module-tabs { flex-wrap: wrap; }
 }
 
 /* 按当前功能模块显示/隐藏表格列 */
