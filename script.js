@@ -126,6 +126,7 @@ const SNAP_FIELDS = [
   'channelName', 'attrText', 'attrs', 'itemTitles', 'trackNumber',
   'countryNameCN', 'updateTime', 'logisticsName', 'buyerName', 'reason',
   'nonPhysical', // 规则5：整单只有赠品/虚拟商品 → 不参与检查
+  'channelCheckStatus', 'channelCheckExpected', 'channelCheckActual', 'channelCheckReason',
 ];
 
 let SNAP_ITEMS = null;
@@ -138,6 +139,10 @@ function snapItems() {
     it.itemTitles = it.itemTitles || [];
     it.hasSpecial = (it.attrs || []).length > 0;
     it.isGeneralCargo = String(it.channelName || '').includes('普货');
+    it.channelCheckStatus = it.channelCheckStatus || '';
+    it.channelCheckExpected = it.channelCheckExpected || '';
+    it.channelCheckActual = it.channelCheckActual || '';
+    it.channelCheckReason = it.channelCheckReason || '';
     return it;
   });
   return SNAP_ITEMS;
@@ -154,6 +159,11 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
     case 'special': list = list.filter((r) => r.hasSpecial); break;
     case 'pending': list = list.filter((r) => r.verdict === 'pending'); break;
     case 'nonphysical': list = list.filter((r) => r.nonPhysical); break;
+    case 'channel_anomaly': list = list.filter((r) => r.channelCheckStatus === 'anomaly'); break;
+    case 'channel_ok': list = list.filter((r) => r.channelCheckStatus === 'ok'); break;
+    case 'channel_covered': list = list.filter((r) => r.channelCheckStatus && r.channelCheckStatus !== 'no_rule'); break;
+    case 'channel_no_match': list = list.filter((r) => r.channelCheckStatus === 'no_match'); break;
+    case 'channel_no_rule': list = list.filter((r) => r.channelCheckStatus === 'no_rule'); break;
     default: break;
   }
   const kw = String(q || '').trim().toLowerCase();
@@ -161,7 +171,9 @@ function snapFiltered({ scope, q, shop, reason, sort } = {}) {
     list = list.filter((r) =>
       [r.erpOrderId, r.platformOrderId, r.shopName, r.buyerName, r.channelName,
         r.logisticsName, r.trackNumber, r.countryNameCN, r.attrText,
-        effectiveReason(r), r.reason, ...(r.itemTitles || [])]
+        effectiveReason(r), r.reason,
+        r.channelCheckStatus, r.channelCheckExpected, r.channelCheckActual, r.channelCheckReason,
+        ...(r.itemTitles || [])]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(kw))
     );
@@ -252,6 +264,7 @@ function renderStats() {
   $('statOk').textContent = fmtNum(st.ok);
   $('statPending').textContent = fmtNum(st.pending);
   $('statNonPhysical').textContent = fmtNum(st.nonPhysical);
+  $('statChannelAnomaly').textContent = fmtNum(st.channelCheckAnomaly);
 
   const rate = st.anomalyRate != null ? st.anomalyRate : 0;
   $('statAnomalySub').textContent = st.special
@@ -265,6 +278,9 @@ function renderStats() {
   $('statNonPhysicalSub').textContent = st.total
     ? `占全部订单 ${((st.nonPhysical / st.total) * 100).toFixed(2)}%`
     : '整单仅赠品 / 虚拟商品';
+  $('statChannelAnomalySub').textContent = st.channelCheckCovered
+    ? `占规则覆盖订单 ${((st.channelCheckAnomaly / st.channelCheckCovered) * 100).toFixed(2)}%`
+    : '模板期望渠道 ≠ 实际渠道';
 
   // 顶部卡片选中态
   document.querySelectorAll('.card.clickable').forEach((c) => {
@@ -329,6 +345,17 @@ function renderPanels() {
       S.scope = 'anomaly'; S.page = 1; renderStats(); loadOrders();
     },
   });
+
+  renderBars('channelCheckShopBars', (st.channelCheckShopStats || []).slice(0, 15).map((c) => ({
+    name: c.name, total: c.total, anomaly: c.total, _shop: c.name,
+  })), {
+    emptyText: '暂无渠道匹配异常店铺',
+    onClick: (r) => {
+      S.shop = r._shop; S.q = ''; S.reason = ''; $('inpSearch').value = ''; $('selShop').value = r._shop;
+      $('selReason').value = '';
+      S.scope = 'channel_anomaly'; S.page = 1; renderStats(); loadOrders();
+    },
+  });
 }
 
 // ===================== 渲染：表格 =====================
@@ -362,6 +389,26 @@ function rowHtml(r, idx) {
     ? `<div class="small ellip" title="${escapeHtml(titles.join(' / '))}">${escapeHtml(titles.join(' / '))}</div>`
     : '<span class="muted small">—</span>';
 
+  const chs = r.channelCheckStatus || '';
+  const chLabel = {
+    ok: '✅ 匹配',
+    anomaly: '❌ 不匹配',
+    no_match: '无匹配',
+    no_rule: '无规则',
+    skipped: '跳过',
+  }[chs] || '—';
+  const chCls = chs === 'ok' ? 'ok' : chs === 'anomaly' ? 'anomaly' : 'na';
+  const chTip = chs === 'anomaly'
+    ? `期望：${escapeHtml(r.channelCheckExpected || '')}\n实际：${escapeHtml(r.channelCheckActual || '')}\n${escapeHtml(r.channelCheckReason || '')}`
+    : escapeHtml(r.channelCheckReason || chLabel);
+  const chHtml = chs
+    ? `<span class="badge ${chCls}" title="${chTip}">${chLabel}</span>`
+      + (chs === 'anomaly'
+        ? `<div class="small ellip" title="期望：${escapeHtml(r.channelCheckExpected || '')}">期望：${escapeHtml(r.channelCheckExpected || '')}</div>`
+          + `<div class="small ellip" title="实际：${escapeHtml(r.channelCheckActual || '')}">实际：${escapeHtml(r.channelCheckActual || '')}</div>`
+        : '')
+    : '<span class="muted small">—</span>';
+
   return `<tr class="${VERDICT_CLASS[v] || ''}">
     <td class="muted small">${idx}</td>
     <td><span class="badge ${r.nonPhysical ? 'na' : (VERDICT_CLASS[v] || '')}" title="${escapeHtml(r.nonPhysical ? '整单仅赠品/虚拟商品，不参与检查' : (r.reason || ''))}">${escapeHtml(r.nonPhysical ? '🚫 不参与' : (VERDICT_LABEL[v] || v))}</span></td>
@@ -374,6 +421,7 @@ function rowHtml(r, idx) {
     <td>${titleHtml}</td>
     <td class="mono">${escapeHtml(r.trackNumber || '')}</td>
     <td class="small">${escapeHtml(r.countryNameCN || r.countryCode || '')}</td>
+    <td class="channel-check-cell">${chHtml}</td>
     <td class="mono small">${escapeHtml((r.updateTime || '').slice(0, 16))}</td>
     <td class="small ${v === 'anomaly' && r.reason ? 'txt-danger' : 'muted'}">${escapeHtml(r.reason || (v === 'anomaly' ? '—' : ''))}</td>
   </tr>`;
@@ -385,7 +433,7 @@ function renderTable(res) {
     const start = (res.page - 1) * res.pageSize;
     tbody.innerHTML = res.items.map((r, i) => rowHtml(r, start + i + 1)).join('');
   } else {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px" class="muted">没有匹配的订单</td></tr>';
   }
   // 计数/分页必须无条件更新，否则「筛选后 0 条」时会显示上一次的旧数字
   const totalPages = Math.max(1, Math.ceil(res.total / res.pageSize));
@@ -396,7 +444,11 @@ function renderTable(res) {
 }
 
 // ===================== 导出 CSV =====================
-const SCOPE_LABEL = { all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道', nonphysical: '不参与检查' };
+const SCOPE_LABEL = {
+  all: '全部', anomaly: '仅异常', ok: '仅正常', special: '仅特殊属性', pending: '待分配渠道', nonphysical: '不参与检查',
+  channel_anomaly: '渠道匹配异常', channel_ok: '渠道匹配正常', channel_covered: '渠道规则覆盖',
+  channel_no_match: '渠道无匹配规则', channel_no_rule: '店铺无渠道规则',
+};
 
 function csvCell(v) {
   const s = String(v === null || v === undefined ? '' : v);
@@ -428,7 +480,8 @@ async function exportCsv() {
 
     const head = [
       '序号', '判定', '订单编号', '内部单号', '店铺', '订单类型', '物流渠道名称', '物流商',
-      '特殊属性', '命中商品', '运单号', '目的国', '更新时间', '异常原因（系统判定）', '原因分类', '原因来源',
+      '特殊属性', '命中商品', '运单号', '目的国', '渠道匹配状态', '期望渠道', '实际渠道', '渠道匹配原因',
+      '更新时间', '异常原因（系统判定）', '原因分类', '原因来源',
     ];
     const rows = list.map((r, i) => {
       const v = r.verdict || 'na';
@@ -442,7 +495,9 @@ async function exportCsv() {
         i + 1, VERDICT_LABEL[v] || v, r.platformOrderId || '', r.erpOrderId || '', r.shopName || '',
         r.canSendText || '', r.channelName || '', r.logisticsName || '', attrs,
         (r.itemTitles || []).filter(Boolean).join(' / '), r.trackNumber || '',
-        r.countryNameCN || r.countryCode || '', r.updateTime || '', r.reason || '',
+        r.countryNameCN || r.countryCode || '',
+        r.channelCheckStatus || '', r.channelCheckExpected || '', r.channelCheckActual || '', r.channelCheckReason || '',
+        r.updateTime || '', r.reason || '',
         manual || (v === 'anomaly' ? suggestReason(r) : ''),
         manual ? '人工填写' : (v === 'anomaly' ? '系统建议' : ''),
       ];
