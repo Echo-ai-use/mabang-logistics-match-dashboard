@@ -504,11 +504,28 @@ body {
 }
 
 @media (max-width: 1180px) {
-  .panels { grid-template-columns: 1fr 1fr; }
+  .panels .module-group[data-module="special"] { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .panels { grid-template-columns: 1fr; }
+  .module-group[data-module] { grid-template-columns: repeat(2, 1fr); }
+  .panels .module-group[data-module] { grid-template-columns: 1fr; }
   .topbar { align-items: flex-start; }
   .sync-info { text-align: left; }
+  .module-tabs { flex-wrap: wrap; }
+}
+
+/* 按当前功能模块显示/隐藏表格列 */
+body[data-module="channel"] th[data-module="special"],
+body[data-module="channel"] td[data-module="special"],
+body[data-module="zip"] th[data-module="special"],
+body[data-module="zip"] td[data-module="special"],
+body[data-module="special"] th[data-module="channel"],
+body[data-module="special"] td[data-module="channel"],
+body[data-module="zip"] th[data-module="channel"],
+body[data-module="zip"] td[data-module="channel"],
+body[data-module="special"] th[data-module="zip"],
+body[data-module="special"] td[data-module="zip"],
+body[data-module="channel"] th[data-module="zip"],
+body[data-module="channel"] td[data-module="zip"] {
+  display: none;
 }
