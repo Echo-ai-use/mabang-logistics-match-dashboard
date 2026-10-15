@@ -229,6 +229,7 @@ function snapState() {
 // ===================== 状态 =====================
 const S = {
   state: null,
+  module: 'special',
   scope: 'all',
   q: '',
   shop: '',
@@ -267,17 +268,43 @@ function fmtTime(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// ===================== 渲染：模块切换 =====================
+function setModule(module) {
+  S.module = module;
+  // 切换模块时，把 scope 切回该模块的默认第一选项
+  const defaults = { special: 'all', channel: 'channel_anomaly', zip: 'zip_anomaly' };
+  S.scope = defaults[module] || 'all';
+  S.page = 1;
+  renderModule();
+  renderStats();
+  loadOrders();
+}
+
+function renderModule() {
+  document.body.dataset.module = S.module;
+
+  // 模块组显隐
+  document.querySelectorAll('.module-group[data-module]').forEach((el) => {
+    el.classList.toggle('hidden', el.dataset.module !== S.module);
+  });
+
+  // 顶部模块导航 active
+  document.querySelectorAll('#moduleTabs .module-tab').forEach((t) => {
+    t.classList.toggle('active', t.dataset.module === S.module);
+  });
+}
+
 // ===================== 渲染：统计 =====================
 function renderStats() {
   const st = (S.state && S.state.stats) || {};
+
+  // 特殊属性模块
   $('statTotal').textContent = fmtNum(st.total);
   $('statSpecial').textContent = fmtNum(st.special);
   $('statAnomaly').textContent = fmtNum(st.anomaly);
   $('statOk').textContent = fmtNum(st.ok);
   $('statPending').textContent = fmtNum(st.pending);
   $('statNonPhysical').textContent = fmtNum(st.nonPhysical);
-  $('statChannelAnomaly').textContent = fmtNum(st.channelCheckAnomaly);
-  $('statZipAnomaly').textContent = fmtNum(st.zipCheckAnomaly);
 
   const rate = st.anomalyRate != null ? st.anomalyRate : 0;
   $('statAnomalySub').textContent = st.special
@@ -291,12 +318,34 @@ function renderStats() {
   $('statNonPhysicalSub').textContent = st.total
     ? `占全部订单 ${((st.nonPhysical / st.total) * 100).toFixed(2)}%`
     : '整单仅赠品 / 虚拟商品';
+
+  // 渠道匹配模块
+  $('statChannelAnomaly').textContent = fmtNum(st.channelCheckAnomaly);
+  $('statChannelCovered').textContent = fmtNum(st.channelCheckCovered);
+  $('statChannelNoMatch').textContent = fmtNum(st.channelCheckNoMatch);
+  $('statChannelNoRule').textContent = fmtNum(st.channelCheckNoRule);
   $('statChannelAnomalySub').textContent = st.channelCheckCovered
     ? `占规则覆盖订单 ${((st.channelCheckAnomaly / st.channelCheckCovered) * 100).toFixed(2)}%`
     : '模板期望渠道 ≠ 实际渠道';
+  $('statChannelCoveredSub').textContent = st.total
+    ? `占全部订单 ${((st.channelCheckCovered / st.total) * 100).toFixed(2)}%`
+    : '有规则且命中 SKU/国家/重量/属性';
+  $('statChannelNoMatchSub').textContent = '有规则但 SKU/国家/重量/属性未命中';
+  $('statChannelNoRuleSub').textContent = '该店铺在国家维度未配置渠道模板';
+
+  // 邮编可达性模块
+  $('statZipAnomaly').textContent = fmtNum(st.zipCheckAnomaly);
+  $('statZipCovered').textContent = fmtNum(st.zipCheckCovered);
+  $('statZipNoRule').textContent = fmtNum(st.zipCheckNoRule);
+  $('statZipNotApplicable').textContent = fmtNum(st.zipCheckNotApplicable);
   $('statZipAnomalySub').textContent = st.zipCheckCovered
     ? `占规则覆盖订单 ${((st.zipCheckAnomaly / st.zipCheckCovered) * 100).toFixed(2)}%`
     : '渠道不可达邮编';
+  $('statZipCoveredSub').textContent = st.total
+    ? `占全部订单 ${((st.zipCheckCovered / st.total) * 100).toFixed(2)}%`
+    : '命中邮编规则且有结果';
+  $('statZipNoRuleSub').textContent = '该店铺渠道未配置邮编白名单';
+  $('statZipNotApplicableSub').textContent = '非美国订单或缺少邮编';
 
   // 顶部卡片选中态
   document.querySelectorAll('.card.clickable').forEach((c) => {
@@ -461,12 +510,12 @@ function rowHtml(r, idx) {
     <td class="ellip" title="${escapeHtml(r.shopName || '')}">${escapeHtml(r.shopName || '')}</td>
     <td class="small ${r.canSend === '2' ? 'txt-danger' : 'muted'}">${escapeHtml(r.canSendText || '—')}</td>
     <td>${chanText}</td>
-    <td>${attrs || '<span class="muted">—</span>'}</td>
-    <td>${titleHtml}</td>
-    <td class="mono">${escapeHtml(r.trackNumber || '')}</td>
+    <td data-module="special">${attrs || '<span class="muted">—</span>'}</td>
+    <td data-module="special">${titleHtml}</td>
+    <td class="mono" data-module="special">${escapeHtml(r.trackNumber || '')}</td>
     <td class="small">${escapeHtml(r.countryNameCN || r.countryCode || '')}</td>
-    <td class="channel-check-cell">${chHtml}</td>
-    <td class="zip-check-cell">${zipHtml}</td>
+    <td class="channel-check-cell" data-module="channel">${chHtml}</td>
+    <td class="zip-check-cell" data-module="zip">${zipHtml}</td>
     <td class="mono small">${escapeHtml((r.updateTime || '').slice(0, 16))}</td>
     <td class="small ${v === 'anomaly' && r.reason ? 'txt-danger' : 'muted'}">${escapeHtml(r.reason || (v === 'anomaly' ? '—' : ''))}</td>
   </tr>`;
@@ -842,6 +891,11 @@ function bind() {
   $('settingsModal').addEventListener('click', (e) => { if (e.target === $('settingsModal')) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('settingsModal').hidden) closeModal(); });
 
+  // 顶部模块导航
+  document.querySelectorAll('#moduleTabs .module-tab').forEach((t) => {
+    t.addEventListener('click', () => setModule(t.dataset.module));
+  });
+
   // 统计卡 → 筛选
   document.querySelectorAll('.card.clickable').forEach((c) => {
     c.addEventListener('click', () => {
@@ -909,6 +963,7 @@ function bind() {
 
 async function init() {
   bind();
+  renderModule();
   if (STATIC) {
     document.title = '马帮物流渠道匹配检查看板（快照版）';
     const b = document.createElement('div');
