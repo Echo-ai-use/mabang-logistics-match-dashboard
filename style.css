@@ -122,10 +122,6 @@ body {
   background: linear-gradient(135deg, #a855f7, #7c3aed);
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
 }
-.module-tab[data-module="zip"].active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
-}
 
 .actions { display: flex; align-items: center; gap: 10px; }
 .sync-info {
@@ -180,9 +176,6 @@ body {
 .module-group[data-module="channel"] {
   grid-template-columns: repeat(5, 1fr);
 }
-.module-group[data-module="zip"] {
-  grid-template-columns: repeat(4, 1fr);
-}
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -235,15 +228,6 @@ body {
   color: #c084fc;
   text-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
 }
-.card.zip {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), var(--card));
-}
-.card.zip::before { background: linear-gradient(90deg, transparent, #f59e0b, transparent); }
-.card.zip .card-value {
-  color: #fbbf24;
-  text-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
-}
 .card-label { color: var(--muted); font-size: 13px; }
 .card-value { font-size: 30px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .card-sub { color: var(--muted); font-size: 11px; margin-top: 2px; min-height: 15px; }
@@ -268,8 +252,7 @@ body {
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
-.panels .module-group[data-module="channel"],
-.panels .module-group[data-module="zip"] {
+.panels .module-group[data-module="channel"] {
   grid-template-columns: 1fr;
   max-width: 420px;
 }
@@ -337,7 +320,6 @@ body {
 .seg-tabs .tab.active.danger { color: var(--danger); border-color: rgba(248, 113, 113, 0.45); background: var(--danger-bg); }
 .seg-tabs .tab.active.ok { color: var(--ok); border-color: rgba(52, 211, 153, 0.45); background: var(--ok-bg); }
 .seg-tabs .tab.active.channel { color: #c084fc; border-color: rgba(168, 85, 247, 0.45); background: rgba(168, 85, 247, 0.12); }
-.seg-tabs .tab.active.zip { color: #fbbf24; border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.12); }
 
 .search {
   flex: 1 1 260px;
@@ -436,8 +418,6 @@ body {
 
 .channel-check-cell { min-width: 160px; }
 .channel-check-cell .small { color: var(--muted); max-width: 220px; }
-.zip-check-cell { min-width: 160px; }
-.zip-check-cell .small { color: var(--muted); max-width: 220px; }
 
 .attr-chip {
   display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 12px;
@@ -553,15 +533,7 @@ body {
 /* 按当前功能模块显示/隐藏表格列 */
 body[data-module="channel"] th[data-module="special"],
 body[data-module="channel"] td[data-module="special"],
-body[data-module="zip"] th[data-module="special"],
-body[data-module="zip"] td[data-module="special"],
 body[data-module="special"] th[data-module="channel"],
-body[data-module="special"] td[data-module="channel"],
-body[data-module="zip"] th[data-module="channel"],
-body[data-module="zip"] td[data-module="channel"],
-body[data-module="special"] th[data-module="zip"],
-body[data-module="special"] td[data-module="zip"],
-body[data-module="channel"] th[data-module="zip"],
-body[data-module="channel"] td[data-module="zip"] {
+body[data-module="special"] td[data-module="channel"] {
   display: none;
 }
